@@ -1,0 +1,199 @@
+/*
+ * src/styles/app.css: the page's layout and components.
+ *
+ * The visual fills the window (the stage's canvas, under everything); the HUD
+ * is one thin bar along the top (R11), the meter sits bottom left, a notice
+ * under the bar. cyberdeck's look, kept small and crisp: JetBrains Mono,
+ * 12 px uppercase, colours only from the tokens (theme.css), a lit frame
+ * (--line-lit) with the softest glow, nothing placed with a transform (text
+ * stays on whole pixels), no endless animations.
+ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: var(--fs-meta);
+  line-height: var(--lh-meta);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* With the HUD out of sight and the mouse still, the pointer hides (app/fullscreen.ts). */
+html[data-idle],
+html[data-idle] * {
+  cursor: none !important;
+}
+
+/* The visual: the stage's canvas, fixed under everything, faded in on its first frame. */
+.scene {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+}
+.scene-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity var(--slow) var(--ease);
+}
+.scene-canvas[data-ready] {
+  opacity: 1;
+}
+
+/* The top bar (R11): full width, thin, see-through black with a lit lower edge. */
+.topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: 1fr minmax(0, 2fr) 1fr;
+  align-items: center;
+  gap: var(--s-md);
+  height: 36px;
+  padding: 0 var(--s-md);
+  background: color-mix(in srgb, var(--bg) 72%, transparent);
+  border-bottom: var(--hairline) solid var(--line-lit);
+  box-shadow: var(--glow-halo);
+}
+.topbar-left,
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--s-sm);
+  min-width: 0;
+}
+.topbar-right {
+  justify-content: flex-end;
+}
+.brand {
+  color: var(--accent);
+  font-weight: 700;
+  text-shadow: var(--glow-text-faint);
+  margin-right: var(--s-sm);
+  white-space: nowrap;
+}
+.topbar-title {
+  min-width: 0;
+  text-align: center;
+}
+.title {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-bright);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.scene-name {
+  min-width: 64px;
+  text-align: center;
+  color: var(--text-bright);
+  letter-spacing: 0.08em;
+}
+
+/* Buttons: cyberdeck's: a lit frame, uppercase, 24 px at least (axe target size). */
+.btn {
+  height: 24px;
+  min-width: 24px;
+  padding: 0 var(--s-sm);
+  font: inherit;
+  font-size: var(--fs-small);
+  letter-spacing: 0.06em;
+  color: var(--text);
+  background: var(--bg);
+  border: var(--hairline) solid var(--line-lit);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition:
+    color var(--fast) var(--ease),
+    border-color var(--fast) var(--ease),
+    box-shadow var(--fast) var(--ease);
+}
+.btn:hover,
+.btn:focus-visible {
+  color: var(--text-bright);
+  border-color: var(--accent);
+  box-shadow: var(--glow);
+}
+.btn:focus-visible {
+  outline: var(--hairline) solid var(--text-bright);
+  outline-offset: 1px;
+}
+.btn:disabled {
+  color: var(--text-dim);
+  cursor: default;
+  box-shadow: none;
+}
+.btn-primary {
+  color: var(--accent);
+  border-color: var(--accent-60);
+}
+.btn-icon {
+  padding: 0;
+  width: 24px;
+  font-size: var(--fs-body);
+}
+
+/* A notice: under the bar (or at the top when the HUD is hidden), centred, for NOTICE_MS. */
+.notice {
+  position: fixed;
+  z-index: 11;
+  top: 44px;
+  left: 50%;
+  margin: 0;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  translate: -50% 0;
+  padding: var(--s-xs) var(--s-md);
+  color: var(--text-bright);
+  background: var(--surface);
+  border: var(--hairline) solid var(--line-lit);
+  box-shadow: var(--glow-faint);
+}
+.notice-top {
+  top: var(--s-sm);
+}
+
+/* The signal meter (D): bottom left. */
+.meter {
+  position: fixed;
+  z-index: 9;
+  left: var(--s-md);
+  bottom: var(--s-md);
+  padding: var(--s-sm);
+  background: color-mix(in srgb, var(--bg) 78%, transparent);
+  border: var(--hairline) solid var(--line-lit);
+}
+.meter-canvas {
+  display: block;
+}
+.meter-figures {
+  margin: var(--s-xs) 0 0;
+  max-width: 360px;
+  font-size: var(--fs-micro);
+  line-height: 14px;
+  color: var(--text);
+}
+
+/* Read by screen readers only. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

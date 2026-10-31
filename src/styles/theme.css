@@ -1,0 +1,148 @@
+/*
+ * src/styles/theme.css: the design tokens, as CSS custom properties.
+ *
+ * cyberdeck_terminal's tokens (themselves quest_log's): the colour roles,
+ * JetBrains Mono, the 4 pt spacing grid, the one effect (a soft glow in the
+ * accent) and the motion tokens. The base colours below are UV's (the
+ * provisional palette, lib/palettes.ts); the showing scene's palette is set
+ * over them (src/palette.ts), and every other colour is mixed from them.
+ * Components use these names, never raw values.
+ */
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-weight: 400;
+  font-display: block;
+  src: url('../assets/fonts/JetBrainsMono-Regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-weight: 700;
+  font-display: block;
+  src: url('../assets/fonts/JetBrainsMono-Bold.woff2') format('woff2');
+}
+
+:root {
+  /* Color: backgrounds, decoration, text (brightness encodes importance).
+     These base colours are UV's; the app sets the showing scene's
+     palette over them (src/lib/palettes.ts, src/palette.ts). Every other
+     colour below is mixed from them, so a palette recolours everything. */
+  --bg: #000000;
+  --surface: #07050d;
+  --surface-raised: #0e0a18;
+  --line: #261a3d;
+  --xp-wash: #1e0838;
+  --text-dim: #a173e0;
+  --text: #bb8ef0;
+  --accent: #c25bff;
+  --text-bright: #ecd6ff;
+  /* The palette pair's second hue: the treble end of frequency colour. */
+  --cool: #20e0c0;
+  --backdrop: rgba(0, 0, 0, 0.6);
+
+  /* The one effect: a soft glow in the accent colour (DESIGN.md: where it goes). */
+  --glow-inset: inset 0 0 6px 0 color-mix(in srgb, var(--accent) 35%, transparent);
+  --glow: 0 0 6px 0 color-mix(in srgb, var(--accent) 35%, transparent);
+  --glow-faint: 0 0 8px 0 color-mix(in srgb, var(--accent) 22%, transparent);
+  /* A lit frame's halo (0.20.0, "lit frames"): the softest glow, round tiles and folders on the wallpaper. */
+  --glow-halo: 0 0 6px 0 color-mix(in srgb, var(--accent) 10%, transparent);
+  --glow-bright: 0 0 6px 0 color-mix(in srgb, var(--accent) 60%, transparent);
+  --glow-text: 0 0 6px color-mix(in srgb, var(--accent) 35%, transparent);
+  --glow-text-bright: 0 0 6px color-mix(in srgb, var(--accent) 60%, transparent);
+  /* The faintest text glow: titles and headings that should only just lift. */
+  --glow-text-faint: 0 0 6px color-mix(in srgb, var(--accent) 20%, transparent);
+
+  /* Accent tints: the accent at fixed strengths, for washes, hover edges and
+     rules (subtle accents, pass 2026-10-12), plus the XP gauge's dark end and
+     the level-up flash. */
+  --accent-05: color-mix(in srgb, var(--accent) 5%, transparent);
+  --accent-10: color-mix(in srgb, var(--accent) 10%, transparent);
+  --accent-12: color-mix(in srgb, var(--accent) 12%, transparent);
+  --accent-20: color-mix(in srgb, var(--accent) 20%, transparent);
+  --accent-35: color-mix(in srgb, var(--accent) 35%, transparent);
+  --accent-60: color-mix(in srgb, var(--accent) 60%, transparent);
+  --bright-08: color-mix(in srgb, var(--text-bright) 8%, transparent);
+  --accent-deep: #6a2aa8;
+  --flash: #ffffff;
+  /* A lit frame: the accent at about 35% over black, as a solid colour (the phone's lineLit). */
+  --line-lit: #3d1a5c;
+
+  /* The phosphor effects (aesthetic pass 2026-10-17, shared with the phone):
+     the lit screen's soft light from its top-left corner, its scanlines (a
+     1 px line every 3 px), a rule lit in the middle, and a heading's rule
+     that fades out (plain, or lit on a page). The gradients are static: the
+     masthead's drift moves its layer, never the gradient. */
+  --phosphor: radial-gradient(130% 100% at 0% 0%, var(--accent-10), transparent 62%);
+  --scanlines: repeating-linear-gradient(to bottom, var(--accent-05) 0 1px, transparent 1px 3px);
+  --lit-rule: linear-gradient(90deg, transparent, var(--line) 15%, var(--accent-35) 50%, var(--line) 85%, transparent);
+  --fade-rule: linear-gradient(90deg, var(--line), transparent);
+  --fade-rule-lit: linear-gradient(90deg, var(--accent-35), transparent);
+
+  /* Type: one family; sizes a step denser than the phone (a desktop reads closer).
+     Every size and line height is times --text-scale: SYSTEM ▸ TEXT SIZE
+     (0.17.0; src/scale.ts sets it on <html>). Only text grows: the panes and
+     spacing keep their sizes (UI SCALE, app.css #root, sizes it all). */
+  --text-scale: 1;
+  --font: 'JetBrains Mono', ui-monospace, monospace;
+  --fs-title: calc(22px * var(--text-scale));
+  --fs-display: calc(18px * var(--text-scale));
+  --fs-body: calc(14px * var(--text-scale));
+  --fs-quest: calc(13px * var(--text-scale));
+  --fs-meta: calc(12px * var(--text-scale));
+  --fs-small: calc(11px * var(--text-scale));
+  /* The smallest text: a link's host under its title (the deck's dense tiles). */
+  --fs-micro: calc(10px * var(--text-scale));
+  --lh-body: calc(20px * var(--text-scale));
+  --lh-meta: calc(16px * var(--text-scale));
+
+  /* Spacing (4 pt grid) and shape. */
+  --s-xs: 4px;
+  --s-sm: 8px;
+  --s-md: 12px;
+  --s-lg: 16px;
+  --s-xl: 24px;
+  --radius: 2px;
+  --hairline: 1px;
+
+  /* Motion: durations and the two curves (arrive / leave). */
+  --fast: 120ms;
+  --base: 200ms;
+  --slow: 320ms;
+  --ease: cubic-bezier(0.33, 1, 0.68, 1); /* out-cubic */
+  --ease-exit: cubic-bezier(0.32, 0, 0.67, 0); /* in-cubic */
+  /* Folds (a quest's objectives, a sidebar section) and the carets that turn
+     with them: a soft start and a long settle (CSS's own ease). A fold moves
+     the furthest of anything here: out-cubic would jump 15% of the way in the
+     first frame (27 px for five objectives); this starts gently and moves at
+     most ~20 px a frame (2026-10-17: "as smooth as possible"). */
+  --ease-fold: cubic-bezier(0.25, 0.1, 0.25, 1);
+  /* Endless decorative loops (the title cursor, the XP sheen): paused under Reduce Motion. */
+  --loops: running;
+
+  /* Alignment grid (alignment pass 2026-10-12). Every button, input and
+     select is --control tall; sidebar rows are --row tall; a sidebar row's
+     content starts --nav-x in from its box, with an icon column of
+     --nav-icon and the label after --s-sm, so icons, carets, headings and
+     labels each share one column. */
+  --control: 32px;
+  --row: 32px;
+  --nav-x: 12px;
+  --nav-icon: 16px;
+  /* Settings: the width of every control in the right-hand column, and of page buttons. */
+  --setting-control: calc(200px * var(--text-scale)); /* grows with the text, so a choice never gets cut off */
+}
+
+/* Reduce Motion (the OS setting, or the app's, which sets data-reduce-motion). */
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-reduce-motion='off']) {
+    --fast: 0ms;
+    --base: 0ms;
+    --slow: 0ms;
+    --loops: paused;
+  }
+}
+:root[data-reduce-motion='on'] {
+  --fast: 0ms;
+  --base: 0ms;
+  --slow: 0ms;
+  --loops: paused;
+}

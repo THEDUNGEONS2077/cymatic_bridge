@@ -2,6 +2,14 @@
 
 Each release, in the user's words where they gave them. The build number counts every release.
 
+## 0.3.0 (build 4)
+**S3: palettes and settings.**
+- **Eight palettes,** neon pairs on true black (bass → treble): UV, LASER, ACID, SOLAR, AURORA, TOXIC, FROST and FLARE. Eight were offered to choose four from; the user: "Can't we keep all the palettes?" All eight pass the contrast rule.
+- **SETTINGS,** a drop-down from the bar's right end (R13). Folds:
+  - **SCENE**, kept per scene: PALETTE (it recolours the visual and the bar), GLOW, SENSITIVITY, TRAILS, ZOOM, RESET SCENE;
+  - **BACKUP**: EXPORT / IMPORT a settings file (read through the migrations; the settings from before an import are kept aside);
+  - **DIAGNOSTICS**: COPY DIAGNOSTICS (frames, the signal and the browser; no title).
+
 ## 0.2.0 (build 3)
 **S2: the title bridge.** The shared tab's title in the bar (R9, R10).
 - **CYMATIC TITLE BRIDGE** (`bridge/`, 1.0.0) is a Chrome extension with no permissions. It runs only on YouTube and YouTube Music. It labels the tab with its title through Chrome's capture handle, readable only by this page's addresses, and labels it again whenever the title changes (the next video, the next song in a mix).

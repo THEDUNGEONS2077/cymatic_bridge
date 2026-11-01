@@ -231,4 +231,7 @@ These are targets, measured from the first build and recorded in ARCHITECTURE §
     - the fallback (externally_connectable) wasn't needed;
     - signal frames are now flow-controlled (one in flight), fixing a pile-up 0.1.1 allowed.
   - 38 unit tests; the walk (10 paths) and `e2e:bridge` (4 paths) pass headless. The headed sound paths need the window uncovered.
-- **Next:** S3, the palettes and settings. Ask the user before starting.
+- **2026-11-01: S3 built as 0.3.0 (build 4).** It has SETTINGS (scene look per scene, BACKUP, DIAGNOSTICS).
+  - **Change to R21:** eight palettes, not four. The user kept all eight offered: "Can't we keep all the palettes?"
+  - 43 unit tests; the walk (11 paths) passes headless.
+- **Next:** S4, PLEXUS: 2–3 animated mock-up directions first, then the user picks. Ask the user before starting.

@@ -29,7 +29,7 @@ How cymatic_bridge is built: the user's method and their choices, each with wher
 | Flashes | No fast strobing (at most 3 a second) |
 | Reduce Motion | Ignored (a visualizer is motion), but the strobe cap holds |
 | Response | Balanced, tuned per scene; the frequency range weighed evenly; stereo available |
-| Palettes | A fresh set: neon pairs on black; 4 to start (I propose, the user picks), more later |
+| Palettes | A fresh set: neon pairs on black. 8 proposed, all kept ("Can't we keep all the palettes?", 0.3.0); more can come with scenes |
 | Colour | Frequency → colour, plus beat accents |
 | Scenes | PLEXUS (first: bolder than NEURAL NET, nodes scattered with colour showing band; beats race signals, swell nodes, flash the net), CODE RAIN EQ (scattered columns), CYMATIC PLATE (square Chladni plate) |
 | Data safety | Light: versioned settings, migrations, damaged data kept, EXPORT/IMPORT |

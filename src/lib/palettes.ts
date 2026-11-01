@@ -9,11 +9,11 @@
  * frequency onto the pair (bass toward the accent, treble toward the cool
  * hue) and flash the bright text colour on beat accents (R22).
  *
- * S3 (0.3.0) audition: eight candidates, UV (0.1.0's, hand-made) and seven
- * derived from their neon pair by a script (each role a fixed mix of the
- * accent over black, text colours lifted toward white until they pass the
- * contrast rule). The user tries them on the music and keeps four; the rest
- * are removed before the release.
+ * Eight palettes (0.3.0): UV (0.1.0's, hand-made) and seven derived from
+ * their neon pair by a script (each role a fixed mix of the accent over
+ * black, text colours lifted toward white until they pass the contrast
+ * rule). Eight were offered for the user to keep four; they kept them all
+ * ("Can't we keep all the palettes?"). More can come with new scenes.
  *
  * The design system's rule holds for every palette: every text colour
  * (dim, text, accent, bright) passes WCAG AA (4.5:1) on every background

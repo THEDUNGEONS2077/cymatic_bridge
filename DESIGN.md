@@ -10,11 +10,20 @@ How cymatic_bridge looks, and why. It inherits cyberdeck_terminal's design syste
 - **Flashes are rare and soft:** only the limited beat accent (≤3 a second, ≤0.8) may flash the picture (R18).
 
 ## 2. Palettes
-A palette is cyberdeck's twelve roles, true black behind everything. cymatic_bridge's palettes are a fresh set of neon pairs (R21); the four to start come in S3, proposed for the user to pick.
+A palette is cyberdeck's twelve roles, true black behind everything. cymatic_bridge's palettes are a fresh set of neon pairs (R21). The accent colours the bass and the cool hue the treble (freqColor). Eight were proposed in S3 for the user to keep four; they kept all eight (0.3.0: "Can't we keep all the palettes?"). UV is hand-made. The other seven are derived from their pair by a script: surfaces, lines and the wash are fixed mixes of the accent over black, text colours are lifted toward white until they pass the contrast rule, and bright is the accent 75% toward white.
 
-| Palette (id) | Origin | Accent (bass) | Cool (treble) | Bright |
-|---|---|---|---|---|
-| UV (`uv`) | 0.1.0, provisional: ultraviolet over acid teal, to build SIGNAL with | `#c25bff` | `#20e0c0` | `#ecd6ff` |
+| Palette (id) | Origin | Accent (bass) | Cool (treble) |
+|---|---|---|---|
+| UV (`uv`) | 0.1.0: ultraviolet over acid teal | `#c25bff` | `#20e0c0` |
+| LASER (`laser`) | 0.3.0: laser red over ice cyan | `#ff2e4d` | `#5fe3ff` |
+| ACID (`acid`) | 0.3.0: acid green over ultraviolet | `#b8ff2e` | `#8a5cff` |
+| SOLAR (`solar`) | 0.3.0: solar orange over deep blue | `#ff8a1f` | `#3a6dff` |
+| AURORA (`aurora`) | 0.3.0: mint over magenta | `#3dffb0` | `#ff4fd8` |
+| TOXIC (`toxic`) | 0.3.0: toxic yellow over violet | `#ffe32e` | `#a04dff` |
+| FROST (`frost`) | 0.3.0: white-blue over indigo | `#9fd8ff` | `#5b5bff` |
+| FLARE (`flare`) | 0.3.0: hot pink over electric cyan | `#ff4fb3` | `#2ee6ff` |
+
+Ids are stored in settings: never change one once released. An unknown id reads as UV.
 
 The contrast rule: every text colour passes WCAG AA (4.5:1) on bg, surface and raised, and bright text passes on the wash. The test checks it.
 
@@ -26,6 +35,10 @@ The contrast rule: every text colour passes WCAG AA (4.5:1) on bg, surface and r
   - While listening to a tab without the title bridge, a quiet button sits in the middle instead: GET TITLE BRIDGE (dim text, a plain frame), or UPDATE TITLE BRIDGE beside an old bridge's title.
   - The scene name is on the right between ‹ ›.
 - **The bar takes the showing scene's palette.**
+- **SETTINGS:** a drop-down at the bar's right end, 400 px wide, on the surface colour with a lit frame. Its folds use native `<details>`, with a ruled summary and an accent caret (cyberdeck SYSTEM's look).
+  - Inside, each setting has its label left and its control right.
+  - Palettes are a 4 × 2 grid of swatches. Each previews its own pair as a split bar, the one place raw colours are drawn; the chosen one is lit.
+  - GLOW is four buttons, the chosen one lit. SENSITIVITY, TRAILS and ZOOM are − value + steppers.
 - **The bridge panel:** under the bar, centred, 480 px wide, on the surface colour with a lit frame. It has an accent heading, the explanation in bright text, the privacy line in text colour, and numbered steps. Its buttons are DOWNLOAD ZIP (primary), DON'T OFFER AGAIN and CLOSE. Esc closes it.
 - **Notices:** one line under the bar, on the surface colour with a lit frame, for 6 s.
 - **The meter (D):** bottom left, 360 × 150 px of bars plus a line of figures in 10 px text.

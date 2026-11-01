@@ -14,7 +14,12 @@ To show the shared tab's video title in the bar, add the small **CYMATIC TITLE B
 | D | The signal meter (bands, beats, frames a second) |
 
 ## Status
-0.2.0 has **S1, the bare bones of SIGNAL** (the capture, the analysis, the drawing stage and one plain development scene, TEST) and **S2, the title bridge**. The roadmap is in [PLAN.md](PLAN.md). The palettes and settings come next, then the scenes PLEXUS, CODE RAIN EQ and CYMATIC PLATE.
+0.3.0 has:
+- **S1, the bare bones of SIGNAL:** the capture, the analysis, the drawing stage and one plain development scene, TEST;
+- **S2, the title bridge;**
+- **S3, eight palettes and SETTINGS:** palette, glow, sensitivity, trails and zoom per scene, export/import and diagnostics.
+
+The roadmap is in [PLAN.md](PLAN.md). The scenes PLEXUS, CODE RAIN EQ and CYMATIC PLATE come next.
 
 ## Development
 ```bash

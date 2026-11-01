@@ -163,8 +163,13 @@ The user, on S1: "it doesn't really feel on time". The visuals lagged the sound.
 - **Migrations** (`lib/migrations.ts`): a step per version, with a fixture test. Unknown or broken data is refused.
 - **Boot** (`store/persist.ts`): refused data is kept under `corrupt.<ms>`, the stored copy is removed, and the defaults are used with a notice. Damaged data is never written over.
 - **Saving** (`store/settings.ts`): debounced 300 ms; flushed on `pagehide`.
+- **SETTINGS** (`app/SettingsPanel.tsx`, 0.3.0) changes the showing scene's own entry through `setSceneSetting`. Each change is normalized like stored data; RESET SCENE drops the entry. App.tsx then sends the new look to the stage, and the palette to the bar.
+- **EXPORT / IMPORT** (`lib/backup.ts`):
+  - The file is `{ app: 'cymatic_bridge', kind: 'settings', version, build, exported, settings }`, named `cymatic-bridge-settings-YYYY-MM-DD.json`.
+  - Import reads it through the migrations, refuses another app's file with a reason, and keeps the settings from before under `settings.before-import`. Then it replaces everything.
+- **COPY DIAGNOSTICS** (`lib/diagnostics.ts`, `app/diagnostics.ts`) is seven lines: version and build, the browser, screen and window, the scene and its look, canvas, fps and draw p95 (3 s), the signal's scalars, and the capture and bridge state. No title.
 - **Names:**
-  - IndexedDB `cymatic_bridge` (store `kv`, keys `settings.v1` and `corrupt.*`);
+  - IndexedDB `cymatic_bridge` (store `kv`, keys `settings.v1`, `settings.before-import` and `corrupt.*`);
   - localStorage `cymatic_bridge:scene` (the start-up hint), `cymatic_bridge:sharp` (the guard's verdicts) and `cymatic_bridge:sharp-budget` (a test knob);
   - caches `cymatic_bridge-*`.
 
@@ -182,7 +187,7 @@ The user, on S1: "it doesn't really feel on time". The visuals lagged the sound.
 | TEST, software-rendered, 1600×900 | 14–19 fps (no GPU here; not the user's number) |
 
 ## 10. Testing
-- **`npm run check`:** typecheck, lint and Vitest. There are 38 tests:
+- **`npm run check`:** typecheck, lint and Vitest. There are 43 tests:
   - SIGNAL on synthetic analyser frames:
     - a sine lands in its band;
     - the tilt;
@@ -196,12 +201,13 @@ The user, on S1: "it doesn't really feel on time". The visuals lagged the sound.
     - flow never goes back.
   - Settings: normalizing, the version-1 fixture, refusals, boot keeping damaged data, the debounced save.
   - The palettes' contrast, and the scene list.
+  - Settings files (a round trip, the name, refusals, an older document through the migrations) and the diagnostics report.
   - The title bridge:
     - cleaning titles;
     - reading labels;
     - comparing versions;
     - the bridge files in step: one version in three places, no permissions, YouTube only, the page's origins permitted.
-- **`npm run e2e`** (`e2e/walk.mjs`): 9 paths on the built page.
+- **`npm run e2e`** (`e2e/walk.mjs`): 11 paths on the built page.
   - Paths:
     - idle before LISTEN;
     - axe;
@@ -209,6 +215,7 @@ The user, on S1: "it doesn't really feel on time". The visuals lagged the sound.
     - LISTEN, where the signal wakes, 120 BPM kicks are counted (≥6 in 4 s), bass beats treble, and closing the shared tab ends the share;
     - the meter;
     - H, kept across a reload;
+    - SETTINGS: a palette recolours the picture and the bar; glow and the steppers; kept across a reload; RESET; an EXPORT / IMPORT round trip; a foreign file refused; COPY DIAGNOSTICS on the clipboard; axe with the panel open;
     - ← / →;
     - hidden, where nothing is drawn and it resumes;
     - a lost context restored;
@@ -224,7 +231,7 @@ The user, on S1: "it doesn't really feel on time". The visuals lagged the sound.
   - **It runs headed when there's a display.** Headless Chrome captures a tab's sound as silence (PLAYBOOK § 2). Covered by another window on the Windows desktop, WSLg's windows run at about 1 frame a second, and the sound paths fail; run it with nothing in front of it.
 
 ## 11. Known limits and next steps
-- **There's one scene (TEST) and one palette (UV).** S3 brings the four palettes and the settings drop-down; S4 brings PLEXUS.
+- **There's one scene (TEST).** S4 brings PLEXUS.
 - **The title bridge must be loaded unpacked** (Developer mode); it isn't in the Chrome Web Store.
 - **GPU time isn't measured** (Chrome hides the timer query); the meter's fps and draw p95 are the guide.
 - **Mono tabs:** both analysers hear the one channel, so balance stays centred.

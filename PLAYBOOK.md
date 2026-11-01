@@ -69,6 +69,10 @@ Lessons from cymatic_bridge, written so other projects can reuse them. cyberdeck
 
 **4.8 Keep only what measures faster.** Working each link's loudness out on the CPU (so no vertex reads the signal texture) measured no faster, so it was reverted: simpler wins a tie.
 
+**4.9 Let a scene skip the stage's buffer when it can.** A stage that draws every scene into a buffer and composites it onto the canvas pays a full-screen pass a frame. Its share showed in a run that drew nothing: 38 fps of a software frame. A scene that needs no last frame from the stage can draw straight onto the canvas; it must then dither its own output. Rounding each fragment up or down at random (`floor(c × 255 + noise) / 255`) keeps additive glows seamless on 8 bits. +30% for PLEXUS (0.4.2).
+
+**4.10 A camera following a path of straight segments should follow its speed, smoothed, not its position.** Each segment points another way, so the forward component jumps at every corner. Glide at the smoothed speed, and correct the distance slowly. Test it by the largest frame-to-frame change in speed: an average can't tell a jump from the same change spread out (0.4.2).
+
 ## 6. Finding a scene with the user
 **6.1 Mock-ups first, in rounds.** Three directions on one page, driven by one synthetic track (with optional sound, and the real palettes), published for the user. Then variations of the one they pick. Canvas 2D is enough to judge a direction; the build is the real thing (`mockups/`).
 

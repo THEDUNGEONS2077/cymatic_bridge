@@ -9,7 +9,7 @@
  */
 import { describe, expect, it } from 'vitest';
 
-import { branch, buildField, density, DEPTH, distance, HALF_HEIGHT, MAX_BRANCHES, MAX_LINK, nextForward, NODES_16_9, pairOf, type Pulse, presenceTarget, seeded, stepBranches, wrapGap, wrapStep } from '@/scene/scenes/plexus/field';
+import { branch, buildField, glide, type Glide, density, DEPTH, distance, HALF_HEIGHT, MAX_BRANCHES, MAX_LINK, nextForward, NODES_16_9, pairOf, type Pulse, presenceTarget, seeded, stepBranches, wrapGap, wrapStep } from '@/scene/scenes/plexus/field';
 
 const f = buildField(16 / 9);
 const all = () => 1;
@@ -140,5 +140,37 @@ describe('branches', () => {
     const none: Pulse[] = [];
     branch(f, none, 0, 4, 3, -1, () => 0, rand);
     expect(none).toHaveLength(0);
+  });
+});
+
+describe('the camera’s glide', () => {
+  it('moves far more smoothly than the pulse’s depth, and holds it about FOLLOW ahead', () => {
+    // A pulse whose forward speed jumps at every node (0.4–1.6 units/s, a new link each 0.3 s), at 144 frames a second.
+    const dt = 1 / 144;
+    const rand = seeded(11);
+    const g: Glide = { depth: -1.7, speed: 0 };
+    let pulse = 0;
+    let speed = 1;
+    const pulseSpeeds: number[] = [];
+    const camSpeeds: number[] = [];
+    let gaps = 0;
+    for (let i = 0; i < 144 * 20; i++) {
+      if (i % 43 === 0) speed = 0.4 + 1.2 * rand();
+      const step = speed * dt;
+      pulse += step;
+      const before = g.depth;
+      glide(g, pulse, step, dt, 1.7, 0.5, 1.5);
+      if (i > 144 * 5) {
+        pulseSpeeds.push(speed);
+        camSpeeds.push((g.depth - before) / dt);
+        gaps += pulse - g.depth;
+      }
+    }
+    // The largest change in speed from one frame to the next: a step is a jump; a glide spreads it out.
+    const jump = (v: number[]) => v.slice(1).reduce((m, x, i) => Math.max(m, Math.abs(x - v[i]!)), 0);
+    expect(jump(pulseSpeeds)).toBeGreaterThan(0.3);
+    expect(jump(camSpeeds)).toBeLessThan(jump(pulseSpeeds) / 50);
+    expect(gaps / camSpeeds.length).toBeGreaterThan(1.4);
+    expect(gaps / camSpeeds.length).toBeLessThan(2.1);
   });
 });

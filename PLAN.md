@@ -243,4 +243,5 @@ These are targets, measured from the first build and recorded in ARCHITECTURE §
   - **Change to R24's PLEXUS:** "nodes swell" and "signals race" became the main pulse and its branches; "network flash" stays as the accent.
   - 53 unit tests; the walk (11 paths) passes headless, now with music made in the page.
 - **2026-11-01: 0.4.1 (build 6).** "More of the net": it fills the screen (about 1,100 nodes), the same quiet stage, and "the smoothest it can be". Visibility culling, packed buffers, strips, a slim glow for quiet links and a direct draw without trails keep 3× the net as fast as the old (measured).
+- **2026-11-01: 0.4.2 (build 7).** "Refine and optimize": the camera glides (no steps at nodes), and PLEXUS draws direct onto the canvas, dithering its own light (+30% measured). The look is unchanged.
 - **Next:** more PLEXUS iteration if the user wants it, then S5 CODE RAIN EQ (mock-ups first). Ask the user before starting.

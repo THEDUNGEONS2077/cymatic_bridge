@@ -14,5 +14,6 @@ out vec4 outColor;
 const float TRAIL_SHOW = 0.4;
 
 void main() {
-  outColor = vec4(max(texture(uFresh, vUv).rgb, texture(uTrail, vUv).rgb * TRAIL_SHOW), 1.0);
+  // Dithered: onto the canvas when PLEXUS draws direct (stage.ts).
+  outColor = vec4(ditherOut(max(texture(uFresh, vUv).rgb, texture(uTrail, vUv).rgb * TRAIL_SHOW)), 1.0);
 }

@@ -197,6 +197,8 @@ The user, on S1: "it doesn't really feel on time". The visuals lagged the sound.
 | … slim glow for quiet links | 7.5 |
 | … CPU culling, packed buffers, 4-vertex strips (0.4.1) | 10.8 |
 | … plus loudness worked out on the CPU (no texture reads per vertex): no faster, left out | 10.9 |
+| 0.4.2: PLEXUS direct (no stage target or composite outside a crossfade) | 13.1–14.4 |
+| (the stage alone, drawing nothing: the composite's share of a frame) | 38.3 |
 
 ## 10. Testing
 - **`npm run check`:** typecheck, lint and Vitest. There are 53 tests:
@@ -283,6 +285,7 @@ A webpage can't read another tab's title, so the shared tab names itself.
   - `draw.glsl` follows it in front of fragment shaders only: `glowLine` and `dither`, which need derivatives and `gl_FragCoord`;
   - `sceneProgram(frag)` builds a full-screen pass; `sceneGeometryProgram(vert, frag)` builds a scene's own geometry.
 - **`SceneFrame`** gives a draw the signal, the size, the pixel ratio, `zoom`, `sensitivity`, the time and `dt`. Its `bind(program)` sets every uniform the include declares.
+- **A direct scene** (`SceneFactory.direct`, 0.4.2; PLEXUS) reads no last frame from the stage and dithers its own light (`draw.glsl` `ditherOut`: each fragment rounded up or down at random, so the average is exact). Outside a crossfade, the stage draws it straight onto the canvas: no target, no composite. During a crossfade it goes through its target like any scene.
 - **A scene may draw in passes of its own** (PLEXUS does). It keeps its own buffers, and must rebind the stage's target at the end: it reads `gl.FRAMEBUFFER_BINDING` at the start, binds it again for its last pass, and unbinds the textures it bound.
 
 ## 14. PLEXUS (`scene/scenes/plexus/`, 0.4.0)
@@ -298,7 +301,7 @@ A webpage can't read another tab's title, so the shared tab names itself.
   2. the main pulse runs at 0.45 + 1.9 × loudness units a second, marking its link;
   3. a new beat count splits off the branches;
   4. marks fade (3.5 s) and swells fade;
-  5. the camera sits 1.7 behind the pulse (depth wrapped on the CPU in double precision), easing sideways after it (0.6 s);
+  5. the camera eases sideways after the pulse (0.6 s). Forward, it glides (`field.ts` `glide`, 0.4.2): at the pulse's forward speed smoothed over 0.5 s, pulled back to 1.7 behind it over 1.5 s, in unwrapped depth (wrapped on the CPU in double precision only to draw). Following the pulse's depth exactly stepped at every node;
   6. **culling** (0.4.1): only links and nodes that are present (or marked), in view to the sides (with a margin) and between the fades (depth 0.35–7.6) are written, packed, into buffers made once per field (bufferSubData). That's 10 floats a link (the ends, presence and mark) and 6 a point (nodes, branches, and the main pulse as band −1);
   7. the draw: two instanced draws of 4-vertex strips, additive. With TRAILS off they go straight onto the scene's target. With TRAILS on they go into the scene's `fresh` buffer; then `trail.frag` keeps the trail history (two buffers, ping-ponged, full strength, pushed outward, faded by TRAILS), and `compose.frag` lays fresh onto the target, the brighter of it and the history × 0.4.
 - **Less to draw** (0.4.1):

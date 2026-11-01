@@ -268,3 +268,24 @@ export function stepBranches(field: Field, branches: Pulse[], dt: number, speed:
     } else branches.splice(i, 1);
   }
 }
+
+/** The camera's forward glide (unwrapped depths): where it is, and its smoothed speed. */
+export interface Glide {
+  depth: number;
+  speed: number;
+}
+
+/**
+ * Moves the camera on by `dt` s, after a pulse now at unwrapped depth
+ * `pulse` that moved `step` this frame: at the pulse's forward speed
+ * smoothed over `speedS`, pulled back to `follow` behind it over `holdS`.
+ * Following the pulse's depth exactly steps at every node (each link points
+ * another way, so the forward share of the pulse's speed jumps there); this
+ * glides (0.4.2).
+ */
+export function glide(g: Glide, pulse: number, step: number, dt: number, follow: number, speedS: number, holdS: number): void {
+  if (dt <= 0) return;
+  g.speed += (step / dt - g.speed) * (1 - Math.exp(-dt / speedS));
+  g.depth += g.speed * dt;
+  g.depth += (pulse - follow - g.depth) * (1 - Math.exp(-dt / holdS));
+}

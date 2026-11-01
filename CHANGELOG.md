@@ -2,6 +2,11 @@
 
 Each release, in the user's words where they gave them. The build number counts every release.
 
+## 0.4.2 (build 7)
+**Refined and optimized.** The user: "It's perfect, refine and optimize". The look is unchanged.
+- **A smoother flight.** The camera no longer copies the pulse's depth. Each link points another way, so the pulse's forward speed jumped at every node and the flight stepped. Now the camera glides at the pulse's forward speed smoothed over 0.5 s, held 1.7 behind it over 1.5 s. Tested: its largest frame-to-frame change in speed is under a fiftieth of the pulse's.
+- **A full-screen pass less a frame.** A "direct" scene draws straight onto the canvas outside a crossfade, so the stage skips its buffer and its composite. PLEXUS is direct, and dithers its own light: each fragment is rounded up or down at random, so faint glows stay seamless on the 8-bit canvas. Measured: 10.8 → 13–14 fps under the test music (software, 1280×720).
+
 ## 0.4.1 (build 6)
 **More of the net, smoother.** The user: "I would like there to be more of the net. Take the current design approach and expand/extend it". It should fill the screen, as "the same quiet stage", and "Try to maximise visual performance and keep latency as low as possible, the main goal is for it to be the smoothest it can be".
 - **The net fills the screen:**

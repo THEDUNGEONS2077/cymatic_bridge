@@ -20,7 +20,11 @@
  *      marking it; at each node it picks the next one ahead, near the centre
  *      (field.ts nextForward), and the node swells;
  *   3. the camera sits FOLLOW behind the pulse and eases sideways after it,
- *      so it stays in focus at the centre;
+ *      so it stays in focus at the centre. Forward, it glides at the pulse's
+ *      forward speed smoothed over CAM_SPEED_S, gently pulled back to FOLLOW
+ *      over CAM_HOLD_S (0.4.2): following the pulse's depth exactly, the
+ *      flight stepped at every node, since each link points another way and
+ *      the forward share of the pulse's speed jumps there;
  *   4. on a beat, branches split off the main pulse along other links,
  *      more for a stronger beat, each running a few links and marking them;
  *   5. marks fade (MARK_S): the paths glow, then go;
@@ -45,7 +49,7 @@ import { createTarget, deleteTarget, floatTargets, type Target } from '../../gl/
 import type { SceneEngine, SceneFactory, SceneFrame } from '../../types';
 import cameraGlsl from './camera.glsl?raw';
 import composeFrag from './compose.frag?raw';
-import { branch, buildField, density, DEPTH, distance, type Field, MAX_BRANCHES, nextForward, pairOf, presenceTarget, type Pulse, seeded, stepBranches, wrapStep } from './field';
+import { branch, buildField, density, DEPTH, distance, type Field, glide, type Glide, MAX_BRANCHES, nextForward, pairOf, presenceTarget, type Pulse, seeded, stepBranches, wrapStep } from './field';
 import linkFrag from './link.frag?raw';
 import linkVert from './link.vert?raw';
 import nodeFrag from './node.frag?raw';
@@ -58,6 +62,9 @@ const MAIN_SPEED_LOUD = 1.9;
 /** How far behind the main pulse the camera sits (world units), and how fast it eases sideways after it (s). */
 const FOLLOW = 1.7;
 const FOLLOW_S = 0.6;
+/** The camera's forward glide: the pulse's forward speed smoothed over CAM_SPEED_S; drift from FOLLOW corrected over CAM_HOLD_S. */
+const CAM_SPEED_S = 0.5;
+const CAM_HOLD_S = 1.5;
 /** Branches on a beat: this many, plus up to this many more for a full-strength beat; how far they run; how fast. */
 const BRANCHES = 2;
 const BRANCHES_STRONG = 3;
@@ -88,6 +95,8 @@ const SEEN_MARGIN = 0.25;
 /** PLEXUS's factory. */
 export const plexusScene: SceneFactory = {
   id: 'plexus',
+  // It reads no last frame from the stage (its trails are its own) and dithers its own light: straight onto the canvas.
+  direct: true,
   create(gl) {
     const linkProgram = sceneGeometryProgram(gl, `${cameraGlsl}\n${linkVert}`, linkFrag);
     const nodeProgram = sceneGeometryProgram(gl, `${cameraGlsl}\n${nodeVert}`, nodeFrag);
@@ -131,6 +140,10 @@ export const plexusScene: SceneFactory = {
     let loudness = 0;
     let lastBeat = -1;
     let camXY: [number, number] = [0, 0];
+    // The forward glide, all in unwrapped depth (wrapped only when drawn): the pulse's depth, the camera's, and its speed.
+    let pulseDepth = 0;
+    let lastPulseZ = 0;
+    const cam: Glide = { depth: -FOLLOW, speed: 0 };
     let fresh: Target | null = null;
     // The trail history: two buffers, swapped each frame (one read, one written).
     let trails: Target[] = [];
@@ -178,6 +191,10 @@ export const plexusScene: SceneFactory = {
       main = { from: start, to: start, t: 1, hops: 0, pair: -1 };
       mainLength = 1;
       camXY = [f.pos[start * 3]!, f.pos[start * 3 + 1]!];
+      lastPulseZ = f.pos[start * 3 + 2]!;
+      pulseDepth = lastPulseZ;
+      cam.depth = pulseDepth - FOLLOW;
+      cam.speed = 0;
     };
 
     /** Where pulse `p` is now (x, y, z; z not wrapped, so the camera never jumps). */
@@ -325,11 +342,15 @@ export const plexusScene: SceneFactory = {
         const fadeSwell = Math.exp(-dt / SWELL_S);
         for (let i = 0; i < swell.length; i++) swell[i]! *= fadeSwell;
 
-        // The camera: FOLLOW behind the pulse, easing sideways after it.
+        // The camera: easing sideways after the pulse; forward, gliding at its smoothed speed, held FOLLOW behind it.
         const [mx, my, mz] = pulseAt(main);
         const kFollow = 1 - Math.exp(-dt / FOLLOW_S);
         camXY = [camXY[0] + (mx - camXY[0]) * kFollow, camXY[1] + (my - camXY[1]) * kFollow];
-        const camZ = (((mz - FOLLOW) % DEPTH) + DEPTH) % DEPTH;
+        const step = wrapStep(lastPulseZ, mz);
+        lastPulseZ = mz;
+        pulseDepth += step;
+        glide(cam, pulseDepth, step, dt, FOLLOW, CAM_SPEED_S, CAM_HOLD_S);
+        const camZ = ((cam.depth % DEPTH) + DEPTH) % DEPTH;
         const scale = f.h * SCALE_OF_HEIGHT * f.zoom;
         const [linkCount, pointCount] = sendVisible(camZ, (0.5 * f.w) / scale, (0.5 * f.h) / scale);
 

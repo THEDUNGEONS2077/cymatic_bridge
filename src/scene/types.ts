@@ -55,6 +55,13 @@ export interface SceneEngine {
 /** A scene's factory. */
 export interface SceneFactory {
   id: string;
+  /**
+   * Can it draw straight onto the canvas (it reads no last frame from the
+   * stage, and dithers its own light)? Then, outside a crossfade, the stage
+   * skips its target and composite pass for it (0.4.2: a full-screen pass
+   * less a frame).
+   */
+  direct?: boolean;
   /** Makes its engine on `gl` (again after a lost context: the stage throws the old one away). */
   create(gl: WebGL2RenderingContext): SceneEngine;
 }

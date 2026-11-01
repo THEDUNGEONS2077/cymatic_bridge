@@ -20,3 +20,12 @@ vec3 dither(vec2 fragCoord) {
   float n = fract(52.9829189 * fract(dot(fragCoord, vec2(0.06711056, 0.00583715))));
   return vec3((n - 0.5) / 255.0);
 }
+
+// A fragment's light, rounded to the 8-bit step above or below at random
+// (weighted, so on average it's exact): light drawn straight onto the canvas
+// (a direct scene, stage.ts) fades smoothly, with no bands, even when many
+// faint glows add up. Harmless in a half-float target.
+vec3 ditherOut(vec3 c) {
+  float n = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
+  return floor(c * 255.0 + n) / 255.0;
+}

@@ -10,7 +10,10 @@
  *   - the crossfade (R15): for CROSSFADE_S after a scene change the old and
  *     new scenes both draw, and the composite pass mixes them; then the old
  *     one goes;
- *   - the composite pass: the scene's target onto the canvas, dithered;
+ *   - the composite pass: the scene's target onto the canvas, dithered.
+ *     A "direct" scene (types.ts SceneFactory.direct: PLEXUS) skips it
+ *     outside a crossfade and draws straight onto the canvas: a full-screen
+ *     pass and a buffer's clear less a frame (0.4.2, measured);
  *   - a lost context: `webglcontextlost` (preventDefault, or it never comes
  *     back) stops drawing, and `webglcontextrestored` builds everything
  *     again, scenes included (cyberdeck's 1.0 lesson: not `contextlost`,
@@ -51,6 +54,8 @@ interface Live {
   trails: boolean;
   /** One target, or two swapped each frame (trails). */
   targets: Target[];
+  /** Does it draw straight onto the canvas outside a crossfade? */
+  direct: boolean;
   /** Which target it draws into this frame. */
   turn: number;
 }
@@ -133,6 +138,7 @@ export function createStage(canvas: OffscreenCanvas, size: StageSize, scene: str
   const makeLive = (id: string, l: SceneLook, withTrails: boolean): Live => ({
     id,
     engine: findFactory(id).create(gl),
+    direct: !!findFactory(id).direct,
     look: l,
     trails: withTrails,
     targets: Array.from({ length: withTrails ? 2 : 1 }, () => createTarget(gl, px.w, px.h, float)),
@@ -192,14 +198,27 @@ export function createStage(canvas: OffscreenCanvas, size: StageSize, scene: str
     gl.uniform3fv(loc(program, 'uColCool'), rgb01(c.cool));
   };
 
-  /** Draws `live` into its target for this frame; returns the texture it drew. */
-  const drawLive = (live: Live, time: number, dt: number): WebGLTexture => {
+  /** Draws `live` into its target for this frame (or, `direct`, straight onto the canvas); returns the texture it drew (null when direct). */
+  const drawLive = (live: Live, time: number, dt: number, direct = false): WebGLTexture | null => {
     const target = live.targets[live.turn]!;
-    const prev = live.targets.length > 1 ? live.targets[1 - live.turn]!.texture : black;
-    gl.bindFramebuffer(gl.FRAMEBUFFER, target.framebuffer);
-    gl.viewport(0, 0, target.w, target.h);
-    const frame: SceneFrame = { gl, signal, w: target.w, h: target.h, dpr: px.dpr, zoom: live.look.zoom, sensitivity: live.look.sensitivity, trails: live.trails ? live.look.trails : 0, time, dt, bind: bindFor(live, prev, dt) };
+    const prev = live.targets.length > 1 && !direct ? live.targets[1 - live.turn]!.texture : black;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, direct ? null : target.framebuffer);
+    gl.viewport(0, 0, direct ? canvas.width : target.w, direct ? canvas.height : target.h);
+    const frame: SceneFrame = {
+      gl,
+      signal,
+      w: direct ? canvas.width : target.w,
+      h: direct ? canvas.height : target.h,
+      dpr: px.dpr,
+      zoom: live.look.zoom,
+      sensitivity: live.look.sensitivity,
+      trails: live.trails ? live.look.trails : 0,
+      time,
+      dt,
+      bind: bindFor(live, prev, dt),
+    };
     live.engine.draw(frame);
+    if (direct) return null;
     // Unbind uPrev before the targets swap: a texture can't be read while it's being drawn into.
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, null);
@@ -223,11 +242,22 @@ export function createStage(canvas: OffscreenCanvas, size: StageSize, scene: str
     lastT = t;
     try {
       tex.upload(signal, dt);
-      const a = drawLive(active, t / 1000, dt);
+      // A direct scene with nothing to fade from: straight onto the canvas, no composite.
+      if (!outgoing && active.direct) {
+        drawLive(active, t / 1000, dt, true);
+        if (pixelWaiters.length) answerPixels();
+        ev.frame(start, performance.now() - start);
+        if (!readyOnce) {
+          readyOnce = true;
+          ev.ready();
+        }
+        return;
+      }
+      const a = drawLive(active, t / 1000, dt)!;
       let b = a;
       let mixT = 1;
       if (outgoing) {
-        b = drawLive(outgoing, t / 1000, dt);
+        b = drawLive(outgoing, t / 1000, dt)!;
         outgoing.since += dt;
         const k = Math.min(1, outgoing.since / CROSSFADE_S);
         mixT = k * k * (3 - 2 * k);

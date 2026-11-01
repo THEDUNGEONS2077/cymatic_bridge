@@ -26,5 +26,6 @@ void main() {
   vec3 col = vColor * vAlpha * (core + glow);
   // Light the screen can't show isn't blended (fewer writes).
   if (max(col.r, max(col.g, col.b)) < 1.0 / 1024.0) discard;
-  outColor = vec4(col, 1.0);
+  // Dithered here: PLEXUS draws straight onto the canvas (stage.ts direct).
+  outColor = vec4(ditherOut(col), 1.0);
 }

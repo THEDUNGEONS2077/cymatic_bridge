@@ -2,6 +2,9 @@
 
 Each release, in the user's words where they gave them. The build number counts every release.
 
+## 0.4.4 (build 9)
+**Fix: the wrong tip about Chrome's sharing bar is gone.** The user: "I can't seem to hide the sharing tab bar". 0.4.3 said the bar hides with its own Hide button. That button belongs to the *screen*-sharing bar. The tab-sharing bar has only Stop and "Share this tab instead", and Chrome makes it impossible to close (its source: not closeable, never expires). The tip is removed, and the README now says so plainly.
+
 ## 0.4.3 (build 8)
 **Published, and a tip about Chrome's sharing bar.** The user: "the bar that shows that Cymatic is being shared to by the music tab should be hidden". Chrome draws that bar itself as a security indicator, and neither a page nor an extension can hide it. Its own Hide button can, so the first LISTEN of a visit now says so, once. Also the MIT licence, ahead of the first push to GitHub.
 

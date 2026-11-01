@@ -15,7 +15,7 @@ Lessons from cymatic_bridge, written so other projects can reuse them. cyberdeck
 
 **1.6 Make the AudioContext inside the click, before awaiting the picker.** Made after `await getDisplayMedia`, it can start suspended, and every analyser frame is then silence. The first share was silent in tests until the context moved into the click (0.1.1).
 
-**1.9 Chrome's "sharing this tab" bar can't be hidden by the page.** It's Chrome's security indicator on the captured tab, shown for getDisplayMedia and extension tabCapture alike. `surfaceSwitching` only adds or removes its "Share this tab instead" button. Its own Hide button dismisses it until the next share: tell the user once (0.4.3).
+**1.9 Chrome's "sharing this tab" bar can't be hidden at all.** It's Chrome's security indicator on the captured tab: in Chromium's `tab_sharing_infobar_delegate.cc` it's not closeable (`IsCloseable()` returns false) and never expires; its buttons are Stop and "Share this tab instead" (`surfaceSwitching` adds or removes that one). 0.4.3 told users to press a Hide button: that's the *screen*-sharing bar's, not the tab-sharing bar's, and the user found it doesn't exist. Check the browser's own source before telling a user what its UI does (0.4.4).
 
 **1.7 A share without "Share tab audio" has no audio track.** Check for one, stop the stream at once (Chrome's sharing bar goes), and say plainly what to tick.
 

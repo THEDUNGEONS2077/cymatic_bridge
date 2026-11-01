@@ -2,6 +2,9 @@
 
 Each release, in the user's words where they gave them. The build number counts every release.
 
+## 0.4.3 (build 8)
+**Published, and a tip about Chrome's sharing bar.** The user: "the bar that shows that Cymatic is being shared to by the music tab should be hidden". Chrome draws that bar itself as a security indicator, and neither a page nor an extension can hide it. Its own Hide button can, so the first LISTEN of a visit now says so, once. Also the MIT licence, ahead of the first push to GitHub.
+
 ## 0.4.2 (build 7)
 **Refined and optimized.** The user: "It's perfect, refine and optimize". The look is unchanged.
 - **A smoother flight.** The camera no longer copies the pulse's depth. Each link points another way, so the pulse's forward speed jumped at every node and the flight stepped. Now the camera glides at the pulse's forward speed smoothed over 0.5 s, held 1.7 behind it over 1.5 s. Tested: its largest frame-to-frame change in speed is under a fiftieth of the pulse's.

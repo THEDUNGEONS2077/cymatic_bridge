@@ -32,6 +32,15 @@ import { captureTab, stopStream } from './capture';
 
 /** The notice when a tab was shared without its sound (R8). */
 export const NOTICE_NO_AUDIO = 'NO SOUND SHARED · IN CHROME’S PICKER, TURN ON “ALSO SHARE TAB AUDIO”';
+/**
+ * The tip after the first share of a visit (0.4.3): Chrome puts a "sharing
+ * this tab" bar on the music tab, and no page or extension can hide it (it's
+ * Chrome's own security indicator); its own Hide button can.
+ */
+export const NOTICE_SHARING_BAR = 'LISTENING · CHROME’S “SHARING THIS TAB” BAR ON THE MUSIC TAB HIDES WITH ITS OWN HIDE BUTTON';
+/** Has the tip been shown this visit? */
+let sharingTipShown = false;
+
 /** The notice when the browser can't share tabs. */
 export const NOTICE_UNSUPPORTED = 'THIS BROWSER CAN’T SHARE A TAB’S SOUND · USE A CURRENT CHROME';
 
@@ -124,6 +133,10 @@ export async function listen(): Promise<void> {
   const r = await captureTab();
   if (r.ok) {
     adoptStream(r.stream);
+    if (!sharingTipShown) {
+      sharingTipShown = true;
+      live.showNotice(NOTICE_SHARING_BAR);
+    }
     return;
   }
   live.setCapture(before === 'live' && stream ? 'live' : 'off');

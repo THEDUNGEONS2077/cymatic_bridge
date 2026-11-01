@@ -15,6 +15,8 @@ Lessons from cymatic_bridge, written so other projects can reuse them. cyberdeck
 
 **1.6 Make the AudioContext inside the click, before awaiting the picker.** Made after `await getDisplayMedia`, it can start suspended, and every analyser frame is then silence. The first share was silent in tests until the context moved into the click (0.1.1).
 
+**1.9 Chrome's "sharing this tab" bar can't be hidden by the page.** It's Chrome's security indicator on the captured tab, shown for getDisplayMedia and extension tabCapture alike. `surfaceSwitching` only adds or removes its "Share this tab instead" button. Its own Hide button dismisses it until the next share: tell the user once (0.4.3).
+
 **1.7 A share without "Share tab audio" has no audio track.** Check for one, stop the stream at once (Chrome's sharing bar goes), and say plainly what to tick.
 
 **1.8 The capture handle tells a capturer which tab it has.** A page (or an extension's content script on it: the isolated world can call it) runs `navigator.mediaDevices.setCaptureHandleConfig({ handle, permittedOrigins })`. Whoever captures that tab reads `videoTrack.getCaptureHandle().handle`, and gets `capturehandlechange` each time it's set again. A title bridge needs no permissions and no messaging, and the label is always the captured tab's own. Limit `permittedOrigins` to your own pages. *Where:* `bridge/title.js`, `audio/listen.ts`.

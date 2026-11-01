@@ -1,20 +1,23 @@
 // src/scene/scenes/plexus/camera.glsl: PLEXUS's camera, put in front of its
 // vertex shaders (after signal.glsl; engine.ts).
 //
-// The camera flies forward through a box of nodes that wraps round in depth
-// (field.ts): a node's depth ahead of it is its z less the camera's, wrapped
-// into 0..uDepth. The whole field sways a little, slowly, so the flight
-// never looks like a rail. Projection is a plain pinhole: px = centre +
-// xy / depth × uScale.
+// The camera follows the main pulse forward through a box of nodes that
+// wraps round in depth (field.ts): a node's depth ahead of it is its z less
+// the camera's, wrapped into 0..uDepth, and the camera sits a little behind
+// the pulse and eases sideways after it (uCamXY), so the pulse stays in
+// focus at the centre. No sway: the net holds still (the user: the last
+// build was "too chaotic / busy"). Projection is a plain pinhole: px =
+// centre + xy / depth × uScale.
 
 uniform float uCamZ;   // the camera's depth in the box, 0..uDepth (the engine wraps it)
 uniform float uDepth;  // the box's depth (field.ts DEPTH)
 uniform float uScale;  // device px per world unit at depth 1 (ZOOM included)
+uniform vec2 uCamXY;   // the camera's sideways position (following the pulse)
 
-// A world point in camera space: x and y swayed, z = depth ahead (never 0).
+// A world point in camera space: x and y relative to the camera, z = depth ahead (never 0).
 vec3 toCamera(vec3 p) {
   float z = mod(p.z - uCamZ, uDepth) + 0.05;
-  return vec3(p.x + 0.18 * sin(uTime * 0.17), p.y + 0.1 * cos(uTime * 0.13), z);
+  return vec3(p.xy - uCamXY, z);
 }
 
 // Camera space to device px.

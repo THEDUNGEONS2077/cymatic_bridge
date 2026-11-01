@@ -1,162 +1,131 @@
 /**
  * src/__tests__/plexus.test.ts: PLEXUS's field (scene/scenes/plexus/field.ts).
  *
- * Layer: tests (Node). The field is pure: the same shape gives the same
- * field; candidates are near and seamless across the depth wrap; wider
- * screens get more nodes; nodes wander and the music pushes them out from
- * the axis; louder ends reach further, so links form with the music; and
- * signals hop only along live links and stop when spent.
+ * Layer: tests (Node). The same shape gives the same field; links are near
+ * and seamless across the depth wrap; the net grows with loudness and keeps
+ * a spine near the axis when quiet; the main pulse runs forward, keeps near
+ * the centre and never runs backward; branches run along present links,
+ * mark them, and end.
  */
 import { describe, expect, it } from 'vitest';
 
-import {
-  ahead, buildField, CANDIDATES_PER_NODE, DEPTH, distanceAt, fire, HALF_HEIGHT, linkTarget, MAX_CANDIDATE, MAX_SIGNALS, NODES_16_9, placeNodes, reach, seeded, type Signal, stepSignals, WANDER_MAX, wrapGap, wrapStep,
-} from '@/scene/scenes/plexus/field';
+import { branch, buildField, density, DEPTH, distance, HALF_HEIGHT, MAX_BRANCHES, MAX_LINK, nextForward, NODES_16_9, pairOf, type Pulse, presenceTarget, seeded, stepBranches, wrapGap, wrapStep } from '@/scene/scenes/plexus/field';
 
 const f = buildField(16 / 9);
-const silent = new Float32Array(f.count);
+const all = () => 1;
 
 describe('the field', () => {
   it('is the same for the same shape', () => {
     const g = buildField(16 / 9);
-    expect(g.home).toEqual(f.home);
+    expect(g.pos).toEqual(f.pos);
     expect(g.pairs).toEqual(f.pairs);
   });
 
-  it('fills the box, every node on a band', () => {
+  it('fills the box, every node on a band and a rank', () => {
     expect(f.count).toBe(NODES_16_9);
     for (let i = 0; i < f.count; i++) {
-      expect(Math.abs(f.home[i * 3]!)).toBeLessThanOrEqual(f.halfWidth);
-      expect(Math.abs(f.home[i * 3 + 1]!)).toBeLessThanOrEqual(HALF_HEIGHT);
-      expect(f.home[i * 3 + 2]).toBeGreaterThanOrEqual(0);
-      expect(f.home[i * 3 + 2]).toBeLessThan(DEPTH);
-      expect(f.band[i]).toBeGreaterThanOrEqual(0);
+      expect(Math.abs(f.pos[i * 3]!)).toBeLessThanOrEqual(f.halfWidth);
+      expect(Math.abs(f.pos[i * 3 + 1]!)).toBeLessThanOrEqual(HALF_HEIGHT);
+      expect(f.pos[i * 3 + 2]).toBeLessThan(DEPTH);
       expect(f.band[i]).toBeLessThan(1);
+      expect(f.rank[i]).toBeGreaterThanOrEqual(0);
+      expect(f.rank[i]).toBeLessThanOrEqual(1);
     }
   });
 
-  it('lists near candidates only, across the depth wrap, each pair once', () => {
-    const seen = new Set<string>();
+  it('links near nodes, across the depth wrap, each pair once', () => {
     let wrapped = 0;
+    const seen = new Set<string>();
     for (let k = 0; k < f.pairs.length; k += 2) {
       const [a, b] = [f.pairs[k]!, f.pairs[k + 1]!];
-      expect(a).toBeLessThan(b);
-      expect(distanceAt(f.home, a, b)).toBeLessThan(MAX_CANDIDATE);
-      if (Math.abs(f.home[a * 3 + 2]! - f.home[b * 3 + 2]!) > DEPTH / 2) wrapped++;
+      expect(distance(f, a, b)).toBeLessThan(MAX_LINK);
+      if (Math.abs(f.pos[a * 3 + 2]! - f.pos[b * 3 + 2]!) > DEPTH / 2) wrapped++;
       seen.add(`${a}:${b}`);
+      expect(pairOf(f, a, b)).toBe(k / 2);
     }
     expect(seen.size).toBe(f.pairs.length / 2);
     expect(wrapped).toBeGreaterThan(0);
-    expect(f.pairs.length / 2).toBeLessThanOrEqual(f.count * CANDIDATES_PER_NODE);
   });
 
-  it('grows with a wider screen, not stretched', () => {
-    const wide = buildField(32 / 9);
-    expect(wide.count).toBe(NODES_16_9 * 2);
-    expect(wide.halfWidth).toBeCloseTo(f.halfWidth * 2);
-  });
-
-  it('wraps depth seen from the camera, and steps the short way', () => {
-    expect(ahead(1, 0)).toBe(1);
-    expect(ahead(1, 2 + DEPTH * 100)).toBeCloseTo(DEPTH - 1);
-    expect(wrapGap(0.2, DEPTH - 0.2)).toBeCloseTo(0.4);
+  it('steps depth the short way across the wrap', () => {
     expect(wrapStep(DEPTH - 0.2, 0.2)).toBeCloseTo(0.4);
     expect(wrapStep(0.2, DEPTH - 0.2)).toBeCloseTo(-0.4);
-    expect(wrapStep(1, 3)).toBeCloseTo(2);
+    expect(wrapGap(0.2, DEPTH - 0.2)).toBeCloseTo(0.4);
   });
 });
 
-describe('movement', () => {
-  it('wanders: nodes move over time, staying near home', () => {
-    const a = new Float32Array(f.count * 3);
-    const b = new Float32Array(f.count * 3);
-    placeNodes(f, 0, silent, silent, a);
-    placeNodes(f, 5, silent, silent, b);
-    let moved = 0;
-    for (let i = 0; i < f.count; i++) {
-      const d = Math.hypot(a[i * 3]! - b[i * 3]!, a[i * 3 + 1]! - b[i * 3 + 1]!, a[i * 3 + 2]! - b[i * 3 + 2]!);
-      if (d > 0.05) moved++;
-      // x and y orbit at different rates (y at 0.83×, 0.7 as far), so the reach is up to √(1 + 0.7²) ≈ 1.22 radii.
-      expect(Math.hypot(a[i * 3]! - f.home[i * 3]!, a[i * 3 + 1]! - f.home[i * 3 + 1]!)).toBeLessThanOrEqual(WANDER_MAX * 1.221);
+describe('growing and shrinking', () => {
+  const present = (d: number) => Array.from({ length: f.count }, (_, i) => presenceTarget(f, i, d)).filter((p) => p > 0.5).length;
+
+  it('is never empty, and full when loud', () => {
+    expect(density(0)).toBeGreaterThan(0);
+    expect(density(1)).toBe(1);
+    expect(present(density(0))).toBeGreaterThan(f.count * 0.15);
+    expect(present(density(1))).toBe(f.count);
+  });
+
+  it('grows with loudness', () => {
+    expect(present(density(0.4))).toBeGreaterThan(present(density(0.1)));
+  });
+
+  it('keeps a spine near the axis when quiet, growing outward', () => {
+    const radius = (i: number) => Math.hypot(f.pos[i * 3]! / f.halfWidth, f.pos[i * 3 + 1]! / HALF_HEIGHT);
+    const quiet = Array.from({ length: f.count }, (_, i) => i).filter((i) => presenceTarget(f, i, density(0)) > 0.5);
+    const mean = quiet.reduce((s, i) => s + radius(i), 0) / quiet.length;
+    const all_ = Array.from({ length: f.count }, (_, i) => radius(i)).reduce((s, r) => s + r, 0) / f.count;
+    expect(mean).toBeLessThan(all_ * 0.8);
+  });
+});
+
+describe('the main pulse', () => {
+  it('runs forward, near the centre, never backward, for a long way', () => {
+    const rand = seeded(3);
+    const quiet = (n: number) => presenceTarget(f, n, density(0));
+    // Start at the present node nearest the axis.
+    let at = 0;
+    for (let i = 0; i < f.count; i++) if (quiet(i) > 0.5 && Math.hypot(f.pos[i * 3]!, f.pos[i * 3 + 1]!) < Math.hypot(f.pos[at * 3]!, f.pos[at * 3 + 1]!)) at = i;
+    let travelled = 0;
+    let offCentre = 0;
+    for (let step = 0; step < 300; step++) {
+      const next = nextForward(f, at, quiet, rand);
+      expect(next).not.toBe(at);
+      const forward = wrapStep(f.pos[at * 3 + 2]!, f.pos[next * 3 + 2]!);
+      expect(forward).toBeGreaterThan(0);
+      travelled += forward;
+      offCentre += Math.hypot(f.pos[next * 3]!, f.pos[next * 3 + 1]!);
+      at = next;
     }
-    expect(moved / f.count).toBeGreaterThan(0.8);
-  });
-
-  it('breathes: loudness and a beat push nodes out from the axis', () => {
-    const quiet = new Float32Array(f.count * 3);
-    const loud = new Float32Array(f.count * 3);
-    const kicked = new Float32Array(f.count * 3);
-    placeNodes(f, 1, silent, silent, quiet);
-    placeNodes(f, 1, new Float32Array(f.count).fill(1), silent, loud);
-    placeNodes(f, 1, silent, new Float32Array(f.count).fill(0.4), kicked);
-    const r = (p: Float32Array, i: number) => Math.hypot(p[i * 3]!, p[i * 3 + 1]!);
-    for (let i = 0; i < f.count; i++) {
-      expect(r(loud, i)).toBeGreaterThan(r(quiet, i));
-      expect(r(kicked, i)).toBeGreaterThan(r(quiet, i));
-      expect(loud[i * 3 + 2]).toBeCloseTo(quiet[i * 3 + 2]!);
-    }
+    // Through the box several times over, mostly within the middle of the screen.
+    expect(travelled).toBeGreaterThan(DEPTH * 3);
+    expect(offCentre / 300).toBeLessThan(0.9);
   });
 });
 
-describe('links', () => {
-  it('reach further when either end is loud', () => {
-    expect(reach(1, 0)).toBeGreaterThan(reach(0, 0));
-    expect(reach(0, 1)).toBe(reach(1, 0));
-  });
-
-  it('form with the music: a pair out of reach when quiet links when loud', () => {
-    const d = reach(0, 0) * 1.2;
-    expect(linkTarget(d, 0, 0)).toBe(0);
-    expect(linkTarget(d, 0.8, 0)).toBe(1);
-    // Smooth between.
-    const r = reach(0.3, 0);
-    expect(linkTarget(r * 0.9, 0.3, 0)).toBeGreaterThan(0);
-    expect(linkTarget(r * 0.9, 0.3, 0)).toBeLessThan(1);
-  });
-
-  it('link more of the field when the music is loud', () => {
-    const pos = new Float32Array(f.count * 3);
-    placeNodes(f, 2, silent, silent, pos);
-    const linked = (loud: number) => {
-      let n = 0;
-      for (let k = 0; k < f.pairs.length; k += 2) if (linkTarget(distanceAt(pos, f.pairs[k]!, f.pairs[k + 1]!), loud, loud) > 0.5) n++;
-      return n;
-    };
-    expect(linked(0)).toBeGreaterThan(0);
-    expect(linked(1)).toBeGreaterThan(linked(0) * 2);
-  });
-});
-
-describe('signals', () => {
-  const all = () => 1;
-
-  it('run along live links, hop on, and stop when their hops are spent', () => {
+describe('branches', () => {
+  it('split off along present links (not the main pulse’s way), mark their links, and end', () => {
     const rand = seeded(5);
-    const start = f.adj.findIndex((n) => n.length > 1);
-    const signals: Signal[] = [];
-    fire(f, signals, start, 3, rand, all);
-    const reached: number[] = [];
-    for (let i = 0; i < 200 && signals.length; i++) stepSignals(f, signals, 1 / 60, rand, all, (n) => reached.push(n));
-    expect(signals).toHaveLength(0);
-    expect(reached.length).toBeGreaterThanOrEqual(1);
-    expect(reached.length).toBeLessThanOrEqual(3);
-    let at = start;
-    for (const n of reached) {
-      expect(f.adj[at]!.map(([m]) => m)).toContain(n);
-      at = n;
+    const at = f.adj.findIndex((n) => n.length >= 4);
+    const except = f.adj[at]![0]![0];
+    const branches: Pulse[] = [];
+    branch(f, branches, at, 3, 3, except, all, rand);
+    expect(branches).toHaveLength(3);
+    for (const b of branches) {
+      expect(b.to).not.toBe(except);
+      expect(pairOf(f, b.from, b.to)).toBe(b.pair);
     }
+    const marked = new Set<number>();
+    for (let i = 0; i < 400 && branches.length; i++) stepBranches(f, branches, 1 / 60, 3, all, rand, (p) => marked.add(p));
+    expect(branches).toHaveLength(0);
+    expect(marked.size).toBeGreaterThanOrEqual(3);
   });
 
-  it('never start along a dead link', () => {
-    const signals: Signal[] = [];
-    fire(f, signals, 0, 3, seeded(1), () => 0);
-    expect(signals).toHaveLength(0);
-  });
-
-  it('never exceed MAX_SIGNALS', () => {
+  it('never exceed MAX_BRANCHES, and never run to absent nodes', () => {
     const rand = seeded(9);
-    const signals: Signal[] = [];
-    for (let i = 0; i < MAX_SIGNALS * 3; i++) fire(f, signals, i % f.count, 3, rand, all);
-    expect(signals.length).toBeLessThanOrEqual(MAX_SIGNALS);
+    const branches: Pulse[] = [];
+    for (let i = 0; i < MAX_BRANCHES * 2; i++) branch(f, branches, i % f.count, 4, 3, -1, all, rand);
+    expect(branches.length).toBeLessThanOrEqual(MAX_BRANCHES);
+    const none: Pulse[] = [];
+    branch(f, none, 0, 4, 3, -1, () => 0, rand);
+    expect(none).toHaveLength(0);
   });
 });

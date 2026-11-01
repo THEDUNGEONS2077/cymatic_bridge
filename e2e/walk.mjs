@@ -13,7 +13,11 @@
 // Headless Chrome captures a tab's audio as silence (peak 0: no audio
 // output to tap, 2026-10-31), so the walk runs headed when there's a
 // display (WSLg's here): a Chromium window shows briefly. CB_HEADLESS=1
-// runs headless instead, and the sound checks are skipped (said so).
+// runs headless instead: there the page's getDisplayMedia is replaced by a
+// stream made in the page (the same kicks over a tone, as WebAudio, and a
+// blank video track), so the analysis, beats and scenes still hear music;
+// only the picker itself and "closing the shared tab ends the share" go
+// unchecked (said so).
 //
 // The test tabs are opened before the page: a CB-TEST tab opened after it
 // was never picked (the picker stayed open, 2026-10-31). Two are opened,
@@ -78,6 +82,30 @@ await context.route(TONE, (route) =>
     </script></body>`,
   }),
 );
+// Headless: the share is a stream made in the page (see above).
+if (!HEADED) {
+  await context.addInitScript(() => {
+    navigator.mediaDevices.getDisplayMedia = async () => {
+      const ctx = new AudioContext();
+      const dest = ctx.createMediaStreamDestination();
+      const tone = ctx.createOscillator(); const tg = ctx.createGain(); tg.gain.value = 0.05;
+      tone.frequency.value = 440; tone.connect(tg).connect(dest); tone.start();
+      const kick = (at) => {
+        const o = ctx.createOscillator(); const g = ctx.createGain();
+        o.frequency.setValueAtTime(120, at); o.frequency.exponentialRampToValueAtTime(45, at + 0.2);
+        g.gain.setValueAtTime(0.9, at); g.gain.exponentialRampToValueAtTime(0.001, at + 0.25);
+        o.connect(g).connect(dest); o.start(at); o.stop(at + 0.3);
+      };
+      let next = ctx.currentTime + 0.1;
+      setInterval(() => { while (next < ctx.currentTime + 1) { kick(next); next += 0.5; } }, 100);
+      const canvas = document.createElement('canvas');
+      canvas.width = canvas.height = 16;
+      canvas.getContext('2d').fillRect(0, 0, 16, 16);
+      return new MediaStream([...dest.stream.getAudioTracks(), ...canvas.captureStream(1).getVideoTracks()]);
+    };
+  });
+}
+
 // The two test tabs first (see above), then the page.
 const tones = [await context.newPage(), await context.newPage()];
 for (const t of tones) await t.goto(TONE);
@@ -166,12 +194,6 @@ try {
     await page.bringToFront();
     await page.getByRole('button', { name: 'LISTEN' }).click();
     await page.getByRole('button', { name: 'STOP' }).waitFor({ timeout: 10000 });
-    if (!HEADED) {
-      console.log('    (headless: the shared tab is silent here, so the sound checks are skipped)');
-      for (const t of tones) await t.close();
-      await page.getByRole('button', { name: 'LISTEN' }).waitFor({ timeout: 5000 });
-      return;
-    }
     const woke = await until((s) => s.idle < 0.2, 8000, 'wake');
     const before = woke.beatCount;
     // Record, in the page, when each beat is seen (epoch ms), and how often its frames run.
@@ -199,15 +221,20 @@ try {
       .filter((x) => x >= 0 && x < 400)
       .sort((a, b) => a - b);
     const loopFps = (await page.evaluate(() => window.__frames)) / 4;
-    console.log(`    beat latency (kick at the speakers → beat seen): median ${lags[Math.floor(lags.length / 2)]?.toFixed(0)} ms, range ${lags[0]?.toFixed(0)}–${lags[lags.length - 1]?.toFixed(0)} ms over ${lags.length} beats; page loop ${loopFps.toFixed(0)} fps`);
+    if (HEADED) console.log(`    beat latency (kick at the speakers → beat seen): median ${lags[Math.floor(lags.length / 2)]?.toFixed(0)} ms, range ${lags[0]?.toFixed(0)}–${lags[lags.length - 1]?.toFixed(0)} ms over ${lags.length} beats; page loop ${loopFps.toFixed(0)} fps`);
     // 4 s at 120 BPM is 8 kicks; allow a missed one or two at the edges.
     if (s.beatCount - before < 6) throw new Error(`beats: ${s.beatCount - before} in 4 s`);
     if (s.bass <= s.treble) throw new Error(`bass ${s.bass} ≤ treble ${s.treble}`);
     await page.screenshot({ path: join(shots, '03-listening.png') });
-    for (const t of tones) await t.close();
-    // Closing the shared tab ends the share: back to LISTEN, easing into idle (R7).
-    await page.getByRole('button', { name: 'LISTEN' }).waitFor({ timeout: 5000 });
-    await until((s) => s.idle > 0.9, 6000, 'idle after the tab closed');
+    if (HEADED) {
+      for (const t of tones) await t.close();
+      // Closing the shared tab ends the share: back to LISTEN, easing into idle (R7).
+      await page.getByRole('button', { name: 'LISTEN' }).waitFor({ timeout: 5000 });
+    } else {
+      console.log('    (headless: the share is made in the page, so closing a tab can’t end it; STOP instead)');
+      await page.getByRole('button', { name: 'STOP' }).click();
+    }
+    await until((s) => s.idle > 0.9, 6000, 'idle after the share ended');
   });
 
   await path('D: the signal meter opens and closes', async () => {
@@ -249,14 +276,14 @@ try {
     await panel.getByRole('button', { name: 'MAX' }).click();
     await panel.getByRole('button', { name: 'SENSITIVITY: more' }).click();
     await panel.getByRole('button', { name: 'ZOOM: less' }).click();
-    await panel.getByRole('button', { name: 'TRAILS: less' }).click();
+    await panel.getByRole('button', { name: 'TRAILS: more' }).click();
     await page.screenshot({ path: join(shots, '05-settings.png') });
     const r = await page.evaluate(() => window.axe.run(document, { runOnly: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] }));
     if (r.violations.length) throw new Error(`axe, settings open: ${r.violations.map((v) => `${v.id}: ${v.nodes.length}`).join(', ')}`);
-    // The showing scene's own settings (PLEXUS: trails 0.25 → 0 with one "less").
+    // The showing scene's own settings (PLEXUS: trails off by default, 0.25 with one "more").
     const id = await stage('scene');
     const own = () => page.evaluate((sid) => window.__cymatic.settings().scenes[sid], id);
-    const want = { palette: 'laser', glow: 'max', sensitivity: 1.25, trails: 0, zoom: 0.9 };
+    const want = { palette: 'laser', glow: 'max', sensitivity: 1.25, trails: 0.25, zoom: 0.9 };
     const got = await own();
     if (JSON.stringify(got) !== JSON.stringify(want)) throw new Error(`settings: ${JSON.stringify(got)}`);
     // Kept across a reload.

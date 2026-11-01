@@ -1,70 +1,56 @@
 /**
- * src/scene/scenes/plexus/field.ts: PLEXUS's world: the nodes the camera
- * flies through, how they move, which of them connect, and the signals that
- * race along the connections.
+ * src/scene/scenes/plexus/field.ts: PLEXUS's world: a net of nodes, which
+ * of them are there, and the pulses that travel through it.
  *
- * Layer: scene, pure (no GL, no DOM; tested in Node). The user picked the
- * FLIGHT variation of the DEPTH direction (mock-ups round 2, 2026-11-01:
- * "I like B2 - Flight"), then asked for more life (0.4.0 build: "I want
- * the neural net to shift and form new connections and be way more
- * reactive to the music"). So the net is alive:
- *   - every node wanders on a slow orbit of its own around its home, so
- *     distances keep changing;
- *   - the music pushes nodes outward from the flight's axis, each by its
- *     band's loudness, and a beat sends a shockwave out (kicks), so the
- *     tunnel breathes;
- *   - links aren't fixed: each node has a few candidate neighbours, and a
- *     candidate is linked while the two are within reach, and the reach
- *     grows with their loudness. Loud nodes connect further; quiet ones let
- *     go. The engine eases each link in and out, so the net visibly rewires.
+ * Layer: scene, pure (no GL, no DOM; tested in Node). The design, from the
+ * user's answers on 2026-11-01 after two builds that weren't right (the
+ * second "too chaotic / busy"):
+ *   - the view stays as it was (looking forward, down the depth of the net,
+ *     B2 FLIGHT), and "the pulse moves forward through the neural net as it
+ *     moves";
+ *   - "a central pulse that travels from node to node, branching off into
+ *     small pulses but the main one stays in focus": one MAIN pulse runs
+ *     forward along links, keeping near the centre; the camera follows it;
+ *     on beats, small BRANCH pulses split off it, run a few links and end;
+ *   - the net "grows and shrinks" with the music: every node has a rank,
+ *     and the louder the music the more ranks are present, so loud passages
+ *     fill the net and quiet ones thin it;
+ *   - "pulse leaves a mark": a link a pulse has run along glows, fading.
+ * The net itself holds still: no wander, no rewiring.
  *
- * The box of nodes is DEPTH deep and wraps round in depth: the camera flies
- * forward for ever. It's as wide as the screen's shape needs (a wide screen
- * gets more nodes, not stretched ones). Every node listens to one band
- * picked at random (R24: scattered, colour showing which). All of it comes
- * from one seed: the same screen shape always gives the same field.
+ * The box of nodes is DEPTH deep and wraps round in depth, so the pulse can
+ * run forward for ever. It's as wide as the screen's shape needs. Every node
+ * listens to one band picked at random (R24: scattered, colour showing
+ * which). All of it comes from one seed.
  */
 
-/** How deep the box is (world units); the camera sees all of it, faded far off. */
+/** How deep the box is (world units). */
 export const DEPTH = 8;
 /** Half the box's height (world units). */
 export const HALF_HEIGHT = 1.4;
 /** Half its width on a 16:9 screen; other shapes scale it. */
 export const HALF_WIDTH_16_9 = 2.6;
 /** Nodes on a 16:9 screen; other shapes scale it with the width. */
-export const NODES_16_9 = 300;
-/** Each node's nearest candidates for a link, and the farthest a candidate may be (home to home). */
-export const CANDIDATES_PER_NODE = 8;
-export const MAX_CANDIDATE = 1.7;
-/** A link's reach: this when both ends are silent, up to this much more when one end is at full loudness. */
-export const REACH_QUIET = 0.58;
-export const REACH_LOUD = 0.85;
-/** The wander: each node's orbit radius (world units) and period (s), drawn between these. */
-export const WANDER_MIN = 0.12;
-export const WANDER_MAX = 0.4;
-export const WANDER_PERIOD_MIN = 9;
-export const WANDER_PERIOD_MAX = 26;
-/** How far the music pushes a node out from the axis at full loudness, and how hard a beat's shockwave kicks. */
-export const PUSH_LOUD = 0.35;
-export const KICK = 0.45;
+export const NODES_16_9 = 340;
+/** Each node's links: its nearest few within a distance. */
+export const LINKS_PER_NODE = 5;
+export const MAX_LINK = 1.1;
 /** The field's seed. */
 export const SEED = 31;
 
 /** The world. */
 export interface Field {
-  /** How many nodes. */
   count: number;
-  /** Each node's home x, y, z (z in 0..DEPTH). */
-  home: Float32Array;
+  /** Each node's x, y, z (z in 0..DEPTH). */
+  pos: Float32Array;
   /** Each node's band position, 0 (bass) .. 1 (treble). */
   band: Float32Array;
-  /** Each node's wander: radius, angular speed (rad/s), phase. */
-  wander: Float32Array;
-  /** Candidate links as node pairs (a, b, a, b …), a < b. */
+  /** Each node's rank, 0..1: it's present while the music's density is above it. */
+  rank: Float32Array;
+  /** Links as node pairs (a, b, a, b …), a < b. */
   pairs: Uint16Array;
-  /** Each node's candidates: [neighbour, pair index]. */
+  /** Each node's links: [neighbour, pair index]. */
   adj: [number, number][][];
-  /** The box's half width. */
   halfWidth: number;
 }
 
@@ -83,146 +69,160 @@ export function wrapGap(a: number, b: number): number {
 
 /** The signed step from depth a to depth b, the short way across the wrap. */
 export function wrapStep(a: number, b: number): number {
-  const d = (((b - a) % DEPTH) + DEPTH * 1.5) % DEPTH - DEPTH / 2;
-  return d;
+  return ((((b - a) % DEPTH) + DEPTH * 1.5) % DEPTH) - DEPTH / 2;
 }
 
-/** Depth `z` seen from a camera at `camZ`: 0 (at the camera) .. DEPTH (the far end). */
-export function ahead(z: number, camZ: number): number {
-  return (((z - camZ) % DEPTH) + DEPTH) % DEPTH;
+/** The distance between nodes i and j (across the depth wrap). */
+export function distance(field: Field, i: number, j: number): number {
+  const p = field.pos;
+  return Math.hypot(p[i * 3]! - p[j * 3]!, p[i * 3 + 1]! - p[j * 3 + 1]!, wrapGap(p[i * 3 + 2]!, p[j * 3 + 2]!));
 }
 
-/** The field for a screen of `aspect` (width / height). */
+/**
+ * The field for a screen of `aspect` (width / height). Ranks are low near
+ * the flight's axis and spread outward (plus noise), so the net always
+ * keeps a spine for the main pulse, and grows outward as the music fills.
+ */
 export function buildField(aspect: number, seed = SEED): Field {
   const shape = Math.min(2.4, Math.max(0.5, aspect / (16 / 9)));
   const halfWidth = HALF_WIDTH_16_9 * shape;
   const count = Math.round(NODES_16_9 * shape);
   const rand = seeded(seed);
-  const home = new Float32Array(count * 3);
+  const pos = new Float32Array(count * 3);
   const band = new Float32Array(count);
-  const wander = new Float32Array(count * 3);
+  const rank = new Float32Array(count);
   for (let i = 0; i < count; i++) {
-    home[i * 3] = (rand() * 2 - 1) * halfWidth;
-    home[i * 3 + 1] = (rand() * 2 - 1) * HALF_HEIGHT;
-    home[i * 3 + 2] = rand() * DEPTH;
+    const x = (rand() * 2 - 1) * halfWidth;
+    const y = (rand() * 2 - 1) * HALF_HEIGHT;
+    pos[i * 3] = x;
+    pos[i * 3 + 1] = y;
+    pos[i * 3 + 2] = rand() * DEPTH;
     band[i] = rand();
-    wander[i * 3] = WANDER_MIN + rand() * (WANDER_MAX - WANDER_MIN);
-    wander[i * 3 + 1] = (Math.PI * 2) / (WANDER_PERIOD_MIN + rand() * (WANDER_PERIOD_MAX - WANDER_PERIOD_MIN)) * (rand() < 0.5 ? -1 : 1);
-    wander[i * 3 + 2] = rand() * Math.PI * 2;
+    // Near the axis ranks low (always there); out at the edges, high (there only when loud).
+    const out = Math.min(1, Math.hypot(x / halfWidth, y / HALF_HEIGHT) / Math.SQRT2);
+    rank[i] = Math.min(1, 0.6 * out + 0.4 * rand());
   }
-  // Each node's nearest few, across the wrap; a pair is listed once.
-  const dist = (i: number, j: number) =>
-    Math.hypot(home[i * 3]! - home[j * 3]!, home[i * 3 + 1]! - home[j * 3 + 1]!, wrapGap(home[i * 3 + 2]!, home[j * 3 + 2]!));
   const list: number[] = [];
   const seen = new Set<number>();
+  const field = { count, pos, band, rank, pairs: new Uint16Array(0), adj: [] as [number, number][][], halfWidth };
   for (let i = 0; i < count; i++) {
     const near: [number, number][] = [];
     for (let j = 0; j < count; j++) {
       if (j === i) continue;
-      const d = dist(i, j);
-      if (d < MAX_CANDIDATE) near.push([j, d]);
+      const d = distance(field, i, j);
+      if (d < MAX_LINK) near.push([j, d]);
     }
     near.sort((a, b) => a[1] - b[1]);
-    for (const [j] of near.slice(0, CANDIDATES_PER_NODE)) {
+    for (const [j] of near.slice(0, LINKS_PER_NODE)) {
       const key = Math.min(i, j) * count + Math.max(i, j);
       if (seen.has(key)) continue;
       seen.add(key);
       list.push(Math.min(i, j), Math.max(i, j));
     }
   }
-  const pairs = Uint16Array.from(list);
-  const adj: [number, number][][] = Array.from({ length: count }, () => []);
-  for (let k = 0; k < pairs.length; k += 2) {
-    adj[pairs[k]!]!.push([pairs[k + 1]!, k / 2]);
-    adj[pairs[k + 1]!]!.push([pairs[k]!, k / 2]);
+  field.pairs = Uint16Array.from(list);
+  field.adj = Array.from({ length: count }, () => []);
+  for (let k = 0; k < field.pairs.length; k += 2) {
+    field.adj[field.pairs[k]!]!.push([field.pairs[k + 1]!, k / 2]);
+    field.adj[field.pairs[k + 1]!]!.push([field.pairs[k]!, k / 2]);
   }
-  return { count, home, band, wander, pairs, adj, halfWidth };
+  return field;
 }
 
 /**
- * Where every node is at time `t` (s), into `out` (x, y, z per node): its
- * home, plus its wander orbit, plus a push out from the flight's axis (the
- * centre line, x = y = 0): `loud[i]` (0..1, its band's loudness) times
- * PUSH_LOUD, and `kick[i]` (the beat's shockwave, eased by the engine).
+ * How dense the net is at loudness `level` (0..1): the rank below which
+ * nodes are present. 0.47 when silent keeps about a third of the net, most
+ * of it near the axis (measured on the 16:9 field); typical music (level
+ * 0.2–0.4) brings most of it in; full by about 0.5.
  */
-export function placeNodes(field: Field, t: number, loud: Float32Array, kick: Float32Array, out: Float32Array): void {
-  const { home, wander, count } = field;
-  for (let i = 0; i < count; i++) {
-    const r = wander[i * 3]!;
-    const a = wander[i * 3 + 2]! + t * wander[i * 3 + 1]!;
-    let x = home[i * 3]! + Math.cos(a) * r;
-    let y = home[i * 3 + 1]! + Math.sin(a * 0.83) * r * 0.7;
-    const z = home[i * 3 + 2]! + Math.sin(a * 0.61 + 1.7) * r * 0.6;
-    // Out from the axis: the tunnel breathes with the music.
-    const len = Math.hypot(x, y) || 1;
-    const push = loud[i]! * PUSH_LOUD + kick[i]!;
-    x += (x / len) * push;
-    y += (y / len) * push;
-    out[i * 3] = x;
-    out[i * 3 + 1] = y;
-    out[i * 3 + 2] = z;
+export function density(level: number): number {
+  return Math.min(1, 0.47 + 1.1 * Math.max(0, level));
+}
+
+/** How present node `i` should be at density `d`: 1 below its rank, 0 above, eased across a small margin. */
+export function presenceTarget(field: Field, i: number, d: number): number {
+  const t = (d - field.rank[i]!) / 0.06;
+  return t <= 0 ? 0 : t >= 1 ? 1 : t;
+}
+
+/** The node the main pulse runs to next from `at`: present, ahead, and keeping to the centre. */
+export function nextForward(field: Field, at: number, present: (node: number) => number, rand: () => number): number {
+  const p = field.pos;
+  const z0 = p[at * 3 + 2]!;
+  let best = -1;
+  let bestScore = Infinity;
+  for (const [n] of field.adj[at]!) {
+    if (present(n) < 0.5) continue;
+    const ahead = wrapStep(z0, p[n * 3 + 2]!);
+    if (ahead < 0.08) continue;
+    // Off the centre line costs; a longer stride forward helps; a little noise so the path isn't fixed.
+    const score = Math.hypot(p[n * 3]!, p[n * 3 + 1]!) - 0.6 * ahead + 0.25 * rand();
+    if (score < bestScore) {
+      bestScore = score;
+      best = n;
+    }
   }
+  if (best >= 0) return best;
+  // A dead end: the nearest present node ahead anywhere near the centre (a jump, but never backward).
+  for (let n = 0; n < field.count; n++) {
+    if (n === at || present(n) < 0.5) continue;
+    const ahead = wrapStep(z0, p[n * 3 + 2]!);
+    if (ahead < 0.08 || ahead > DEPTH / 2) continue;
+    const score = Math.hypot(p[n * 3]!, p[n * 3 + 1]!) + ahead;
+    if (score < bestScore) {
+      bestScore = score;
+      best = n;
+    }
+  }
+  return best >= 0 ? best : at;
 }
 
-/** A candidate link's reach for two ends of loudness `a` and `b` (0..1): the louder end reaches further. */
-export function reach(a: number, b: number): number {
-  return REACH_QUIET + REACH_LOUD * Math.max(a, b);
-}
-
-/** How linked a candidate pair at distance `d` should be (0..1): fully within 80% of reach, fading to none at reach. */
-export function linkTarget(d: number, a: number, b: number): number {
-  const r = reach(a, b);
-  const t = (r - d) / (0.2 * r);
-  return t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t);
-}
-
-/** The distance between nodes i and j at positions `pos` (across the depth wrap). */
-export function distanceAt(pos: Float32Array, i: number, j: number): number {
-  return Math.hypot(pos[i * 3]! - pos[j * 3]!, pos[i * 3 + 1]! - pos[j * 3 + 1]!, wrapGap(pos[i * 3 + 2]!, pos[j * 3 + 2]!));
-}
-
-/** A signal: light running from node `from` to node `to` (`t` 0..1 of the way), with `hops` links still to run. */
-export interface Signal {
+/** A pulse running from node `from` to node `to` (`t` 0..1 of the way). Branches also count down `hops`. */
+export interface Pulse {
   from: number;
   to: number;
   t: number;
   hops: number;
+  /** The link it's on (-1: a dead-end jump, along no link). */
+  pair: number;
 }
 
-/** How many links a signal runs a second. */
-export const SIGNAL_SPEED = 2.8;
-/** At most this many signals at once (a dense beat can't flood the field). */
-export const MAX_SIGNALS = 96;
+/** The pair joining a and b (-1 if none). */
+export function pairOf(field: Field, a: number, b: number): number {
+  for (const [n, p] of field.adj[a]!) if (n === b) return p;
+  return -1;
+}
 
-/** Links a signal may run along: those linked at least this much now. */
-export const SIGNAL_LINK = 0.35;
+/** How many branches can run at once. */
+export const MAX_BRANCHES = 40;
 
 /**
- * Fires a signal from node `from` along one of its live links (`live(pair)`
- * says how linked a pair is now), to run `hops` links. None if it has no
- * live link.
+ * Starts `count` branches from node `at`, each along a different present
+ * link (not `except`, the main pulse's own way), to run `hops` links.
  */
-export function fire(field: Field, signals: Signal[], from: number, hops: number, rand: () => number, live: (pair: number) => number): void {
-  if (signals.length >= MAX_SIGNALS) return;
-  const out = field.adj[from]!.filter(([, p]) => live(p) >= SIGNAL_LINK);
-  if (!out.length) return;
-  signals.push({ from, to: out[Math.floor(rand() * out.length)]![0], t: 0, hops });
+export function branch(field: Field, branches: Pulse[], at: number, count: number, hops: number, except: number, present: (node: number) => number, rand: () => number): void {
+  const out = field.adj[at]!.filter(([n]) => n !== except && present(n) >= 0.5);
+  for (let k = 0; k < count && out.length && branches.length < MAX_BRANCHES; k++) {
+    const [to, pair] = out.splice(Math.floor(rand() * out.length), 1)[0]!;
+    branches.push({ from: at, to, t: 0, hops, pair });
+  }
 }
 
 /**
- * Moves the signals on by `dt` s. One that reaches its node calls
- * `arrive(node)` and runs on along another live link (never straight back)
- * until its hops are spent or there's nowhere live to go.
+ * Moves branches on by `dt` s at `speed` links a second; one that reaches
+ * its node marks its link (`mark(pair)`) and runs on along another present
+ * link (never back) until its hops are spent.
  */
-export function stepSignals(field: Field, signals: Signal[], dt: number, rand: () => number, live: (pair: number) => number, arrive: (node: number) => void): void {
-  for (let i = signals.length - 1; i >= 0; i--) {
-    const s = signals[i]!;
-    s.t += dt * SIGNAL_SPEED;
-    if (s.t < 1) continue;
-    arrive(s.to);
-    const next = field.adj[s.to]!.filter(([n, p]) => n !== s.from && live(p) >= SIGNAL_LINK);
-    if (s.hops > 1 && next.length) {
-      signals[i] = { from: s.to, to: next[Math.floor(rand() * next.length)]![0], t: s.t - 1, hops: s.hops - 1 };
-    } else signals.splice(i, 1);
+export function stepBranches(field: Field, branches: Pulse[], dt: number, speed: number, present: (node: number) => number, rand: () => number, mark: (pair: number) => void): void {
+  for (let i = branches.length - 1; i >= 0; i--) {
+    const b = branches[i]!;
+    b.t += dt * speed;
+    if (b.pair >= 0) mark(b.pair);
+    if (b.t < 1) continue;
+    const next = field.adj[b.to]!.filter(([n]) => n !== b.from && present(n) >= 0.5);
+    if (b.hops > 1 && next.length) {
+      const [to, pair] = next[Math.floor(rand() * next.length)]!;
+      branches[i] = { from: b.to, to, t: b.t - 1, hops: b.hops - 1, pair };
+    } else branches.splice(i, 1);
   }
 }

@@ -1,33 +1,39 @@
-// src/scene/scenes/plexus/node.vert: a node (or a signal) as a glowing disc.
+// src/scene/scenes/plexus/node.vert: a node, a branch pulse or the main
+// pulse, as a glowing disc.
 //
-// Each instance is a point (x, y, z, band) and its swell (0..1: a beat or a
-// signal reaching it). Its size follows perspective, its band's loudness and
-// the swell; its colour its band (freqColor). Signals are drawn with this
-// too: a point between two nodes with a swell above 1.
+// Each instance is a point (x, y, z, band), its swell (0..1: a pulse
+// reached it lately; branches are drawn at 1) and its presence (the net
+// grows and shrinks with the music: a node fades in and out). The main
+// pulse comes with band -1: it's drawn larger, in the palette's bright
+// colour, always fully present: the one thing always in focus.
 
-layout(location = 0) in vec4 aNode;  // x, y, z, band
-layout(location = 1) in float aSwell;
+layout(location = 0) in vec4 aNode;  // x, y, z, band (-1: the main pulse)
+layout(location = 1) in vec2 aState; // swell, presence
 
 out vec2 vUv;
 flat out vec3 vColor;
 flat out float vAlpha;
 
 // The largest a disc gets (CSS px), however near.
-const float MAX_SIZE = 110.0;
+const float MAX_SIZE = 120.0;
 
 void main() {
   vec2 q = vec2[6](vec2(-1.0, -1.0), vec2(1.0, -1.0), vec2(1.0, 1.0), vec2(-1.0, -1.0), vec2(1.0, 1.0), vec2(-1.0, 1.0))[gl_VertexID];
   vec3 c = toCamera(aNode.xyz);
   float fog = fogOf(c.z);
-  float e = band(aNode.w);
-  vAlpha = (0.32 + 0.68 * min(1.0, e + aSwell)) * fog;
+  bool isMain = aNode.w < 0.0;
+  float e = isMain ? uLevel : band(aNode.w);
+  float swell = aState.x;
+  float present = aState.y;
+  vAlpha = isMain ? 1.0 : (0.22 + 0.45 * e + 0.6 * swell) * fog * present;
   if (vAlpha < 0.003 || c.z < 0.15) {
     gl_Position = HIDDEN;
     return;
   }
-  // A wide range (0.4.0: "way more reactive"): small when quiet, big when loud or swelling.
-  float size = min(MAX_SIZE, (5.0 + 34.0 * e + 28.0 * aSwell) / c.z * (0.8 + 0.4 * uGlow)) * uDpr;
+  // The main pulse: big, breathing with the level and flaring on the beat.
+  float css = isMain ? 26.0 + 30.0 * uLevel + 26.0 * uBeat : 4.0 + 12.0 * e + 22.0 * swell;
+  float size = min(MAX_SIZE, css / c.z * (0.8 + 0.4 * uGlow)) * uDpr;
   vUv = q;
-  vColor = freqColor(aNode.w, e);
+  vColor = isMain ? uColBright : freqColor(aNode.w, e);
   gl_Position = clipOf(project(c) + q * 0.5 * size);
 }

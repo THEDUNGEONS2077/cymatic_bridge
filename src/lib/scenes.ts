@@ -57,7 +57,8 @@ export const SCENES: readonly SceneInfo[] = [
   {
     id: 'plexus',
     name: 'PLEXUS',
-    defaults: { palette: DEFAULT_PALETTE, glow: 'high', sensitivity: 1, trails: 0.25, zoom: 1 },
+    // Trails off by default: the pulse and its marks read clearest without them (the user: "too chaotic / busy").
+    defaults: { palette: DEFAULT_PALETTE, glow: 'high', sensitivity: 1, trails: 0, zoom: 1 },
     profile: BALANCED,
     trails: true,
   },

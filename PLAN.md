@@ -230,5 +230,5 @@ These are targets, measured from the first build and recorded in ARCHITECTURE §
     - `permittedOrigins` is the page's own origins, not `*`;
     - the fallback (externally_connectable) wasn't needed;
     - signal frames are now flow-controlled (one in flight), fixing a pile-up 0.1.1 allowed.
-  - 39 unit tests; the walk (10 paths) and `e2e:bridge` (4 paths) pass headless. The headed sound paths need the window uncovered.
+  - 38 unit tests; the walk (10 paths) and `e2e:bridge` (4 paths) pass headless. The headed sound paths need the window uncovered.
 - **Next:** S3, the palettes and settings. Ask the user before starting.

@@ -182,7 +182,7 @@ The user, on S1: "it doesn't really feel on time". The visuals lagged the sound.
 | TEST, software-rendered, 1600×900 | 14–19 fps (no GPU here; not the user's number) |
 
 ## 10. Testing
-- **`npm run check`:** typecheck, lint and Vitest. There are 39 tests:
+- **`npm run check`:** typecheck, lint and Vitest. There are 38 tests:
   - SIGNAL on synthetic analyser frames:
     - a sine lands in its band;
     - the tilt;

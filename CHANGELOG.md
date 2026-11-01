@@ -2,6 +2,24 @@
 
 Each release, in the user's words where they gave them. The build number counts every release.
 
+## 0.4.0 (build 5)
+**S4: PLEXUS**, the first real scene. The user: "This is perfect".
+- **How it was found:**
+  - Mock-ups round 1 (three directions): the user picked B, DEPTH.
+  - Round 2 (four DEPTH variations): "I like B2 - Flight".
+  - The first build flew through a still net.
+  - The second made it live ("shift and form new connections and be way more reactive"), but was "too chaotic / busy".
+  - The third followed the user's rethink: "a central pulse that travels from node to node, branching off into small pulses but the main one stays in focus".
+- **What it is:**
+  - **The main pulse** travels forward through the net, in the palette's bright colour. The camera follows it, so it stays in focus at the centre. It moves faster when loud, and breathes with the level and flares on the beat.
+  - **Branches:** each beat splits off 2–5 small pulses, which run a few links and end.
+  - **Marks:** "pulse leaves a mark". Every link a pulse runs along glows brighter, thicker and whiter, fading over 3.5 s.
+  - **The net** "grows and shrinks": loud passages bring nodes in, quiet ones let them fade, and about a third stays, mostly near the centre. Otherwise it holds still and quiet, the stage for the pulse.
+- **Trails** (off by default for PLEXUS):
+  - "When the trails are on not much is visible": they were added onto the picture, so still parts built up to ~30× their brightness. Now the brighter of the two wins.
+  - Then "the trails are still too intense": the history is now kept at full strength and shown at 40%, as a soft afterglow. It also lasts at most 0.6 s.
+- **Tests:** a headless walk now hears music: a stream made in the page stands in for the picker, so the sound checks run every time.
+
 ## 0.3.0 (build 4)
 **S3: palettes and settings.**
 - **Eight palettes,** neon pairs on true black (bass → treble): UV, LASER, ACID, SOLAR, AURORA, TOXIC, FROST and FLARE. Eight were offered to choose four from; the user: "Can't we keep all the palettes?" All eight pass the contrast rule.

@@ -19,7 +19,9 @@ To show the shared tab's video title in the bar, add the small **CYMATIC TITLE B
 - **S2, the title bridge;**
 - **S3, eight palettes and SETTINGS:** palette, glow, sensitivity, trails and zoom per scene, export/import and diagnostics.
 
-The roadmap is in [PLAN.md](PLAN.md). The scenes PLEXUS, CODE RAIN EQ and CYMATIC PLATE come next.
+- **S4, PLEXUS:** a pulse travelling forward through a neural net that grows and shrinks with the music, branching on the beat and leaving glowing marks.
+
+The roadmap is in [PLAN.md](PLAN.md). The scenes CODE RAIN EQ and CYMATIC PLATE come next.
 
 ## Development
 ```bash

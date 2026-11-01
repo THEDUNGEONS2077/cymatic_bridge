@@ -53,5 +53,25 @@ SIGNAL drawn plainly, so the method can be seen and tuned. It isn't meant to be 
 - **The trails:** the last frame drifting outward and fading, lasting 0.05–0.8 s by TRAILS.
 - **The accent:** a faint full-screen flash of the bright colour, added before the trail mix, so it fades with the trail and never stacks (0.1.0: an early build let it stack into a grey haze).
 
-### 4.2 Coming
-PLEXUS (S4), CODE RAIN EQ (S5) and CYMATIC PLATE (S6), described in PLAN.md R24. Each starts from 2–3 mock-up directions or a reference image.
+### 4.2 PLEXUS (0.4.0)
+The first real scene: a pulse travelling forward through a neural net. It was found in three steps:
+- **Mock-ups, round 1:** A FIELD, B DEPTH and C CONSTELLATION (`mockups/plexus/`). The user picked B.
+- **Round 2:** four DEPTH variations: CLOUD, FLIGHT, ORB and GALAXY (`mockups/plexus-depth/`). "I like B2 - Flight".
+- **Three builds:**
+  1. A flight through a still net.
+  2. A living one: wandering nodes, rewiring links, a shockwave and a surge. It was "too chaotic / busy".
+  3. The user's rethink: "a central pulse that travels from node to node, branching off into small pulses but the main one stays in focus". "This is perfect".
+
+| Part | How it looks |
+|---|---|
+| The view | Looking forward down the net (FLIGHT's). The camera sits 1.7 units behind the main pulse and eases sideways after it (0.6 s), so the pulse stays at the centre |
+| The main pulse | A disc in the palette's bright colour, 26 CSS px at depth 1 plus 30 with the level and 26 on a beat. It runs forward node to node near the centre line, 0.45–2.35 units a second with the loudness |
+| Branches | On each beat, 2–5 small pulses split off along other links (more for a stronger beat), each running 2–5 links |
+| Marks | A link a pulse ran along glows: brighter, up to 2.2 px thicker, toward the bright colour, fading over 3.5 s. The main pulse's mark is full, a branch's 0.55 |
+| The net | 340 nodes on a 16:9 screen in a box 8 deep that wraps. Each listens to one random band, coloured by it. It's quiet (a link 0.08–0.46 bright, a node 4–16 px), so the pulse and marks are the show. It holds still |
+| Grows and shrinks | Each node has a rank, low near the centre line. The loudness (eased over 1.2 s) sets how many ranks are present: about a third when silent, all of them by level 0.5. Nodes fade in over 0.5 s and out over 1.4 s |
+| Depth | Nodes fade in from the far dark over a long curve and out just before the camera, so nothing pops. A first try faded only the last units, and the far field piled up into a white knot at the centre |
+| Trails | Off by default. On, warp streaks push out from the centre (faster when loud), shown at 40% behind the live picture and lasting 0.05–0.6 s |
+
+### 4.3 Coming
+CODE RAIN EQ (S5) and CYMATIC PLATE (S6), described in PLAN.md R24. Each starts from 2–3 mock-up directions or a reference image.

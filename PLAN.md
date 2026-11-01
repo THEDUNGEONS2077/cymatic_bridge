@@ -234,4 +234,12 @@ These are targets, measured from the first build and recorded in ARCHITECTURE §
 - **2026-11-01: S3 built as 0.3.0 (build 4).** It has SETTINGS (scene look per scene, BACKUP, DIAGNOSTICS).
   - **Change to R21:** eight palettes, not four. The user kept all eight offered: "Can't we keep all the palettes?"
   - 43 unit tests; the walk (11 paths) passes headless.
-- **Next:** S4, PLEXUS: 2–3 animated mock-up directions first, then the user picks. Ask the user before starting.
+- **2026-11-01: S4 built as 0.4.0 (build 5), PLEXUS.**
+  - **How it was found:**
+    - Mock-ups round 1 (A/B/C): B, DEPTH.
+    - Round 2 (four DEPTH variations): B2, FLIGHT.
+    - Three builds. The third was the user's rethink: a main pulse travelling forward, the camera following it, branches on beats, marks on the links it ran, a net that grows and shrinks; calm.
+  - The user: "This is perfect". Trails were then fixed twice: no longer added onto the picture, and shown dimmed.
+  - **Change to R24's PLEXUS:** "nodes swell" and "signals race" became the main pulse and its branches; "network flash" stays as the accent.
+  - 53 unit tests; the walk (11 paths) passes headless, now with music made in the page.
+- **Next:** more PLEXUS iteration if the user wants it, then S5 CODE RAIN EQ (mock-ups first). Ask the user before starting.

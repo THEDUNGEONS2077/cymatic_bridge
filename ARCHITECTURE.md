@@ -187,7 +187,7 @@ The user, on S1: "it doesn't really feel on time". The visuals lagged the sound.
 | TEST, software-rendered, 1600×900 | 14–19 fps (no GPU here; not the user's number) |
 
 ## 10. Testing
-- **`npm run check`:** typecheck, lint and Vitest. There are 43 tests:
+- **`npm run check`:** typecheck, lint and Vitest. There are 53 tests:
   - SIGNAL on synthetic analyser frames:
     - a sine lands in its band;
     - the tilt;
@@ -202,12 +202,18 @@ The user, on S1: "it doesn't really feel on time". The visuals lagged the sound.
   - Settings: normalizing, the version-1 fixture, refusals, boot keeping damaged data, the debounced save.
   - The palettes' contrast, and the scene list.
   - Settings files (a round trip, the name, refusals, an older document through the migrations) and the diagnostics report.
+  - PLEXUS's field:
+    - the same for the same shape;
+    - links near and seamless across the wrap;
+    - it grows with loudness and keeps a spine when quiet;
+    - the main pulse runs forward, near the centre, never back;
+    - branches mark their links and end.
   - The title bridge:
     - cleaning titles;
     - reading labels;
     - comparing versions;
     - the bridge files in step: one version in three places, no permissions, YouTube only, the page's origins permitted.
-- **`npm run e2e`** (`e2e/walk.mjs`): 11 paths on the built page.
+- **`npm run e2e`** (`e2e/walk.mjs`): 11 paths on the built page. Headless (`CB_HEADLESS=1`), `getDisplayMedia` is replaced by a stream made in the page (kicks over a tone), so the sound checks run every time (PLAYBOOK 2.6).
   - Paths:
     - idle before LISTEN;
     - axe;
@@ -231,7 +237,7 @@ The user, on S1: "it doesn't really feel on time". The visuals lagged the sound.
   - **It runs headed when there's a display.** Headless Chrome captures a tab's sound as silence (PLAYBOOK § 2). Covered by another window on the Windows desktop, WSLg's windows run at about 1 frame a second, and the sound paths fail; run it with nothing in front of it.
 
 ## 11. Known limits and next steps
-- **There's one scene (TEST).** S4 brings PLEXUS.
+- **Two scenes:** PLEXUS and TEST (development). S5 brings CODE RAIN EQ.
 - **The title bridge must be loaded unpacked** (Developer mode); it isn't in the Chrome Web Store.
 - **GPU time isn't measured** (Chrome hides the timer query); the meter's fps and draw p95 are the guide.
 - **Mono tabs:** both analysers hear the one channel, so balance stays centred.
@@ -258,3 +264,31 @@ A webpage can't read another tab's title, so the shared tab names itself.
   - An old label gets UPDATE TITLE BRIDGE instead.
   - Either opens `app/BridgePanel.tsx`: what it does, the zip (`cymatic-bridge.zip`, built next to the page by the `bridgeZip` Vite plugin and served by the dev server too), and the steps to load it unpacked.
   - DON'T OFFER AGAIN sets `settings.bridgeOffer` to false. It's a new field with no version bump: older documents read as true.
+
+## 13. Scene code (0.4.0)
+- **The includes** (`scene/gl/program.ts`):
+  - `signal.glsl` goes in front of every scene shader, vertex and fragment alike: the uniforms, the signal sampling, `freqColor`, `accentFlash`, `trailKeep` and `sceneCoord`;
+  - `draw.glsl` follows it in front of fragment shaders only: `glowLine` and `dither`, which need derivatives and `gl_FragCoord`;
+  - `sceneProgram(frag)` builds a full-screen pass; `sceneGeometryProgram(vert, frag)` builds a scene's own geometry.
+- **`SceneFrame`** gives a draw the signal, the size, the pixel ratio, `zoom`, `sensitivity`, the time and `dt`. Its `bind(program)` sets every uniform the include declares.
+- **A scene may draw in passes of its own** (PLEXUS does). It keeps its own buffers, and must rebind the stage's target at the end: it reads `gl.FRAMEBUFFER_BINDING` at the start, binds it again for its last pass, and unbinds the textures it bound.
+
+## 14. PLEXUS (`scene/scenes/plexus/`, 0.4.0)
+- **`field.ts`** (pure, tested) is the world:
+  - 340 nodes on a 16:9 screen (scaled with the width), in a box 2.6 × 1.4 × 8 that wraps in depth;
+  - each node has a band and a rank (low near the centre line, plus noise);
+  - links join each node to its 5 nearest within 1.1, across the wrap;
+  - `density(level)`: the rank below which a node is present: 0.47 + 1.1 × level;
+  - `nextForward`: the main pulse's next node, present and ahead (never back), chosen by its distance off the centre line less 0.6 × the stride, plus a little noise. A dead end jumps to the nearest present node ahead;
+  - `branch` / `stepBranches`: the branches, along present links, marking them.
+- **`engine.ts`**, each frame:
+  1. the loudness, eased over 1.2 s, sets the density; each node's presence eases toward it;
+  2. the main pulse runs at 0.45 + 1.9 × loudness units a second, marking its link;
+  3. a new beat count splits off the branches;
+  4. marks fade (3.5 s) and swells fade;
+  5. the camera sits 1.7 behind the pulse (depth wrapped on the CPU in double precision), easing sideways after it (0.6 s);
+  6. the draw passes: links (instanced quads, 10 floats each: the ends, presence and mark) and points (6 floats: nodes, branches, and the main pulse as band −1), additive, into the scene's `fresh` buffer; `trail.frag` keeps the trail history (two buffers, ping-ponged, full strength, pushed outward, faded by TRAILS); `compose.frag` lays fresh onto the target, the brighter of it and the history × 0.4.
+- **Shaders:**
+  - `camera.glsl`: depth ahead (wrapped), the camera's sideways position, the projection and the fog;
+  - `link.vert` / `link.frag`: cyberdeck's glowing line on screen-space quads, with round ends;
+  - `node.vert` / `node.frag`: a near-white core, a body and a halo, all Gaussians.

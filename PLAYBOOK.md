@@ -28,6 +28,8 @@ Lessons from cymatic_bridge, written so other projects can reuse them. cyberdeck
 
 **2.4 On WSLg, covered windows run at about 1 fps.** Headed test windows are drawn on the Windows desktop; with another window in front of them, `requestAnimationFrame` runs at about 1 Hz, whatever Chrome's anti-throttling flags say. Timing tests need them uncovered.
 
+**2.6 Feed a headless test real music from inside the page.** Replace `navigator.mediaDevices.getDisplayMedia` in an init script with a function returning a WebAudio `MediaStreamDestination`'s audio track (kicks over a tone) plus a canvas's `captureStream` video track. The real analysis, beats and scenes then hear music headless, every run, with no window to be throttled. Only the picker itself goes unchecked. *Where:* `e2e/walk.mjs`.
+
 **2.5 Background tabs' timers run about once a second.** A WebAudio test signal scheduled half a second ahead plays with gaps from a background tab: queue it seconds ahead (`ctx.currentTime + 3`).
 
 ## 3. Audio features for visuals
@@ -54,5 +56,16 @@ Lessons from cymatic_bridge, written so other projects can reuse them. cyberdeck
 
 **4.3 Half-float targets for fades.** In 8 bits, 0.95 × 3 rounds back to 3: slow fades stick at a dim floor and leave ghosts. RGBA16F (with `EXT_color_buffer_float`) fades to black.
 
+**4.4 Never add a frame onto its own trail.** Drawing new light additively onto the faded last frame adds a still thing to itself every frame: it settles at 1 / (1 − keep) of its brightness, about 30× at 144 Hz, and the picture washes out. Keep the brighter of the two instead (0.4.0).
+
+**4.5 Keep the trail at full strength; show it dimmed.** A trail shown as stored starts as bright as what left it. Keep the history in a buffer of its own (two, ping-ponged), and lay it behind the live picture at a fraction (0.4). Streaks keep their length but never compete with the live picture (0.4.0: "still too intense").
+
 ## 5. The SIGNAL texture
 **5.1 One small texture carries everything.** RG16F, 64 bands × (now + waveform + a 128-row history ring): 33 KB on the card and 1 KB uploaded a frame. Write history rows at a fixed rate (64 a second), not per frame, so history scrolls the same at any frame rate. Read rows at their centres so linear filtering blends bands but never rows. *Where:* `scene/gl/signalTexture.ts`, `scene/shaders/signal.glsl`.
+
+## 6. Finding a scene with the user
+**6.1 Mock-ups first, in rounds.** Three directions on one page, driven by one synthetic track (with optional sound, and the real palettes), published for the user. Then variations of the one they pick. Canvas 2D is enough to judge a direction; the build is the real thing (`mockups/`).
+
+**6.2 When a build is wrong, ask before rebuilding.** PLEXUS's second build, more motion everywhere, was "too chaotic / busy". Four questions (the view, what the pulse is, how the net changes, what felt wrong) gave the third design, which landed: "This is perfect". Motion should have one focus; the rest is the stage.
+
+**6.3 Perspective crowds the far field into the centre.** In a flight, everything far away projects near the middle; additive light piles up into a white knot. Fade the far field over a long curve (the far half), not just its last stretch.

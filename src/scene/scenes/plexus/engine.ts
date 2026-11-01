@@ -22,8 +22,11 @@
  *      more for a stronger beat, each running a few links and marking them;
  *   5. marks fade (MARK_S): the paths glow, then go;
  *   6. drawing: links, then nodes, branches and the main pulse, additively,
- *      into the scene's own buffer; trail.frag lays that onto the scene's
- *      target with the warp-streak trail behind it (the brighter wins).
+ *      into the scene's own buffer (fresh); trail.frag adds that to the
+ *      trail history (two buffers of the scene's own, swapped each frame:
+ *      warp streaks, kept at full strength); compose.frag lays the fresh
+ *      light onto the scene's target with the history behind it, dimmed
+ *      ("The trails are still too intense when activated").
  * The net itself holds still: no wander, no rewiring.
  */
 import { OFFSET, SCALAR } from '@/lib/signal/layout';
@@ -36,6 +39,7 @@ import { branch, buildField, density, DEPTH, distance, type Field, MAX_BRANCHES,
 import linkFrag from './link.frag?raw';
 import linkVert from './link.vert?raw';
 import nodeFrag from './node.frag?raw';
+import composeFrag from './compose.frag?raw';
 import nodeVert from './node.vert?raw';
 import trailFrag from './trail.frag?raw';
 
@@ -74,6 +78,7 @@ export const plexusScene: SceneFactory = {
     const linkProgram = sceneGeometryProgram(gl, `${cameraGlsl}\n${linkVert}`, linkFrag);
     const nodeProgram = sceneGeometryProgram(gl, `${cameraGlsl}\n${nodeVert}`, nodeFrag);
     const trailProgram = sceneProgram(gl, trailFrag);
+    const composeProgram = sceneProgram(gl, composeFrag);
     const float = floatTargets(gl);
     const linkBuffer = gl.createBuffer()!;
     const nodeBuffer = gl.createBuffer()!;
@@ -117,6 +122,9 @@ export const plexusScene: SceneFactory = {
     let lastBeat = -1;
     let camXY: [number, number] = [0, 0];
     let fresh: Target | null = null;
+    // The trail history: two buffers, swapped each frame (one read, one written).
+    let trails: Target[] = [];
+    let trailTurn = 0;
     const locs = new Map<WebGLProgram, Map<string, WebGLUniformLocation | null>>();
     const loc = (p: WebGLProgram, name: string) => {
       let m = locs.get(p);
@@ -241,7 +249,9 @@ export const plexusScene: SceneFactory = {
         if (!field || Math.abs(shape - aspect) / aspect > 0.01) build(shape);
         if (!fresh || fresh.w !== f.w || fresh.h !== f.h) {
           if (fresh) deleteTarget(gl, fresh);
+          for (const t of trails) deleteTarget(gl, t);
           fresh = createTarget(gl, f.w, f.h, float);
+          trails = [createTarget(gl, f.w, f.h, float), createTarget(gl, f.w, f.h, float)];
         }
         const fld = field!;
         const target = gl.getParameter(gl.FRAMEBUFFER_BINDING) as WebGLFramebuffer | null;
@@ -305,24 +315,45 @@ export const plexusScene: SceneFactory = {
         gl.bindVertexArray(null);
         gl.disable(gl.BLEND);
 
-        // Onto the scene's target, with the trail behind it.
-        gl.bindFramebuffer(gl.FRAMEBUFFER, target);
+        // The trail history: last frame's, pushed and faded, against this frame's light.
+        const write = trails[trailTurn]!;
+        const read = trails[1 - trailTurn]!;
+        trailTurn = 1 - trailTurn;
+        /** Binds texture `t` to unit `unit` as sampler `name` of `program`. */
+        const sampler = (program: WebGLProgram, name: string, unit: number, t: WebGLTexture) => {
+          gl.activeTexture(gl.TEXTURE0 + unit);
+          gl.bindTexture(gl.TEXTURE_2D, t);
+          gl.uniform1i(loc(program, name), unit);
+        };
+        gl.bindFramebuffer(gl.FRAMEBUFFER, write.framebuffer);
         gl.viewport(0, 0, f.w, f.h);
         f.bind(trailProgram);
-        gl.activeTexture(gl.TEXTURE2);
-        gl.bindTexture(gl.TEXTURE_2D, fresh.texture);
-        gl.uniform1i(loc(trailProgram, 'uFresh'), 2);
+        sampler(trailProgram, 'uFresh', 2, fresh.texture);
+        sampler(trailProgram, 'uTrailPrev', 3, read.texture);
         drawFullscreen(gl);
-        gl.bindTexture(gl.TEXTURE_2D, null);
+
+        // Onto the scene's target: the fresh light, the history dimmed behind it.
+        gl.bindFramebuffer(gl.FRAMEBUFFER, target);
+        gl.viewport(0, 0, f.w, f.h);
+        f.bind(composeProgram);
+        sampler(composeProgram, 'uFresh', 2, fresh.texture);
+        sampler(composeProgram, 'uTrail', 3, write.texture);
+        drawFullscreen(gl);
+        // Unbind, so no texture is read while it's drawn into next frame.
+        for (const unit of [2, 3]) {
+          gl.activeTexture(gl.TEXTURE0 + unit);
+          gl.bindTexture(gl.TEXTURE_2D, null);
+        }
         gl.activeTexture(gl.TEXTURE0);
       },
       destroy() {
-        for (const p of [linkProgram, nodeProgram, trailProgram]) gl.deleteProgram(p);
+        for (const p of [linkProgram, nodeProgram, trailProgram, composeProgram]) gl.deleteProgram(p);
         gl.deleteBuffer(linkBuffer);
         gl.deleteBuffer(nodeBuffer);
         gl.deleteVertexArray(linkVao);
         gl.deleteVertexArray(nodeVao);
         if (fresh) deleteTarget(gl, fresh);
+        for (const t of trails) deleteTarget(gl, t);
       },
     };
     return engine;

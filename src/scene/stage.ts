@@ -198,7 +198,7 @@ export function createStage(canvas: OffscreenCanvas, size: StageSize, scene: str
     const prev = live.targets.length > 1 ? live.targets[1 - live.turn]!.texture : black;
     gl.bindFramebuffer(gl.FRAMEBUFFER, target.framebuffer);
     gl.viewport(0, 0, target.w, target.h);
-    const frame: SceneFrame = { gl, signal, w: target.w, h: target.h, dpr: px.dpr, zoom: live.look.zoom, sensitivity: live.look.sensitivity, time, dt, bind: bindFor(live, prev, dt) };
+    const frame: SceneFrame = { gl, signal, w: target.w, h: target.h, dpr: px.dpr, zoom: live.look.zoom, sensitivity: live.look.sensitivity, trails: live.trails ? live.look.trails : 0, time, dt, bind: bindFor(live, prev, dt) };
     live.engine.draw(frame);
     // Unbind uPrev before the targets swap: a texture can't be read while it's being drawn into.
     gl.activeTexture(gl.TEXTURE1);

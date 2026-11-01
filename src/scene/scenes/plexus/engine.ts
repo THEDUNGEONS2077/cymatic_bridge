@@ -8,26 +8,35 @@
  * (looking forward down the net, as B2 FLIGHT); "a central pulse that
  * travels from node to node, branching off into small pulses but the main
  * one stays in focus"; the net "grows and shrinks" and the "pulse leaves a
- * mark". Each frame:
+ * mark". "This is perfect" (0.4.0). Then "I would like there to be more of
+ * the net … Fills the screen", the same quiet stage, and "the main goal is
+ * for it to be the smoothest it can be" (0.4.1): a net three times the size
+ * (field.ts), drawn with less work per node. Each frame:
  *   1. presence: the music's loudness (eased over DENSITY_S, so the net
  *      changes calmly) sets how much of the net is there (field.ts density);
  *      each node fades toward it, in over PRESENCE_IN_S, out over
  *      PRESENCE_OUT_S;
- *   2. the main pulse runs along its link at a speed set by the loudness
- *      (MAIN_SPEED), marking it; at each node it picks the next one ahead,
- *      near the centre (field.ts nextForward), and the node swells;
+ *   2. the main pulse runs along its link at a speed set by the loudness,
+ *      marking it; at each node it picks the next one ahead, near the centre
+ *      (field.ts nextForward), and the node swells;
  *   3. the camera sits FOLLOW behind the pulse and eases sideways after it,
  *      so it stays in focus at the centre;
  *   4. on a beat, branches split off the main pulse along other links,
  *      more for a stronger beat, each running a few links and marking them;
  *   5. marks fade (MARK_S): the paths glow, then go;
- *   6. drawing: links, then nodes, branches and the main pulse, additively,
- *      into the scene's own buffer (fresh); trail.frag adds that to the
- *      trail history (two buffers of the scene's own, swapped each frame:
- *      warp streaks, kept at full strength); compose.frag lays the fresh
- *      light onto the scene's target with the history behind it, dimmed
- *      ("The trails are still too intense when activated").
- * The net itself holds still: no wander, no rewiring.
+ *   6. drawing: every link, then every node, then the branches and the main
+ *      pulse, additively. With TRAILS off, straight onto the scene's target
+ *      (one pass of light, nothing else). With TRAILS on, into a buffer of
+ *      the scene's own (fresh); trail.frag adds that to the trail history
+ *      (two buffers, swapped each frame: warp streaks at full strength);
+ *      compose.frag lays fresh onto the target with the history dimmed
+ *      behind it ("The trails are still too intense when activated").
+ * Only what can be seen is drawn (0.4.1, measured: links were most of a
+ * frame's cost, mostly their vertices): each frame the CPU skips links and
+ * nodes that are absent (a quiet net is a third present), out of view to
+ * the sides, or within the near and far fades, and writes the rest, packed,
+ * into buffers made once per field (bufferSubData: no allocation). A quad is
+ * a four-vertex strip.
  */
 import { OFFSET, SCALAR } from '@/lib/signal/layout';
 
@@ -35,11 +44,11 @@ import { drawFullscreen, sceneGeometryProgram, sceneProgram } from '../../gl/pro
 import { createTarget, deleteTarget, floatTargets, type Target } from '../../gl/targets';
 import type { SceneEngine, SceneFactory, SceneFrame } from '../../types';
 import cameraGlsl from './camera.glsl?raw';
+import composeFrag from './compose.frag?raw';
 import { branch, buildField, density, DEPTH, distance, type Field, MAX_BRANCHES, nextForward, pairOf, presenceTarget, type Pulse, seeded, stepBranches, wrapStep } from './field';
 import linkFrag from './link.frag?raw';
 import linkVert from './link.vert?raw';
 import nodeFrag from './node.frag?raw';
-import composeFrag from './compose.frag?raw';
 import nodeVert from './node.vert?raw';
 import trailFrag from './trail.frag?raw';
 
@@ -67,9 +76,14 @@ const PRESENCE_OUT_S = 1.4;
 const SWELL_S = 0.35;
 /** Device px per world unit at depth 1, as a share of the canvas height. */
 const SCALE_OF_HEIGHT = 0.39;
-/** Floats per link (two ends' x, y, z, band; presence; mark) and per point (x, y, z, band; swell; presence). */
+/** Floats per drawn link (two ends' x, y, z, band; presence; mark) and per drawn point (x, y, z, band; swell; presence). */
 const LINK = 10;
 const POINT = 6;
+/** The depths ahead that can be seen (camera.glsl fogOf: gone nearer than 0.35, all but gone beyond 7.6). */
+const SEEN_NEAR = 0.35;
+const SEEN_FAR = 7.6;
+/** A margin round the screen's edges (world units at depth 1) before a thing counts as out of view: glows reach past their centres. */
+const SEEN_MARGIN = 0.25;
 
 /** PLEXUS's factory. */
 export const plexusScene: SceneFactory = {
@@ -80,31 +94,25 @@ export const plexusScene: SceneFactory = {
     const trailProgram = sceneProgram(gl, trailFrag);
     const composeProgram = sceneProgram(gl, composeFrag);
     const float = floatTargets(gl);
-    const linkBuffer = gl.createBuffer()!;
-    const nodeBuffer = gl.createBuffer()!;
+    const buf = { links: gl.createBuffer()!, points: gl.createBuffer()! };
     const linkVao = gl.createVertexArray()!;
-    const nodeVao = gl.createVertexArray()!;
+    const pointVao = gl.createVertexArray()!;
 
-    /** Sets up a VAO's per-instance attributes: [location, size, offset in floats]. */
-    const instanced = (vao: WebGLVertexArrayObject, buffer: WebGLBuffer, stride: number, attrs: [number, number, number][]) => {
-      gl.bindVertexArray(vao);
+    /** Points a per-instance attribute at a buffer: location, size, stride and offset in floats. */
+    const attr = (buffer: WebGLBuffer, loc: number, size: number, stride: number, offset: number) => {
       gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-      for (const [loc, size, offset] of attrs) {
-        gl.enableVertexAttribArray(loc);
-        gl.vertexAttribPointer(loc, size, gl.FLOAT, false, stride * 4, offset * 4);
-        gl.vertexAttribDivisor(loc, 1);
-      }
-      gl.bindVertexArray(null);
+      gl.enableVertexAttribArray(loc);
+      gl.vertexAttribPointer(loc, size, gl.FLOAT, false, stride * 4, offset * 4);
+      gl.vertexAttribDivisor(loc, 1);
     };
-    instanced(linkVao, linkBuffer, LINK, [
-      [0, 4, 0],
-      [1, 4, 4],
-      [2, 2, 8],
-    ]);
-    instanced(nodeVao, nodeBuffer, POINT, [
-      [0, 4, 0],
-      [1, 2, 4],
-    ]);
+    gl.bindVertexArray(linkVao);
+    attr(buf.links, 0, 4, LINK, 0);
+    attr(buf.links, 1, 4, LINK, 4);
+    attr(buf.links, 2, 2, LINK, 8);
+    gl.bindVertexArray(pointVao);
+    attr(buf.points, 0, 4, POINT, 0);
+    attr(buf.points, 1, 2, POINT, 4);
+    gl.bindVertexArray(null);
 
     let field: Field | null = null;
     let aspect = 0;
@@ -113,6 +121,8 @@ export const plexusScene: SceneFactory = {
     let mark = new Float32Array(0);
     let links = new Float32Array(0);
     let points = new Float32Array(0);
+    // Each link's B depth, placed next to A's (the short way across the wrap), worked out once per field.
+    let linkZb = new Float32Array(0);
     const branches: Pulse[] = [];
     const rand = seeded(7);
     const present = (n: number) => presence[n] ?? 0;
@@ -133,16 +143,34 @@ export const plexusScene: SceneFactory = {
       return m.get(name)!;
     };
 
-    /** Builds the field for the canvas's shape; the main pulse starts at the present node nearest the axis. */
+    /**
+     * Builds the field for the canvas's shape: sizes the per-frame buffers
+     * (on the CPU and the GPU, once), and starts the main pulse at the
+     * present node nearest the axis.
+     */
     const build = (shape: number) => {
       aspect = shape;
       const f = (field = buildField(shape));
+      const linkCount = f.pairs.length / 2;
       presence = Float32Array.from({ length: f.count }, (_, i) => presenceTarget(f, i, density(0)));
       swell = new Float32Array(f.count);
-      mark = new Float32Array(f.pairs.length / 2);
-      links = new Float32Array((f.pairs.length / 2) * LINK);
+      mark = new Float32Array(linkCount);
+      links = new Float32Array(linkCount * LINK);
       points = new Float32Array((f.count + MAX_BRANCHES + 1) * POINT);
       branches.length = 0;
+      linkZb = new Float32Array(linkCount);
+      for (let k = 0; k < linkCount; k++) {
+        const za = f.pos[f.pairs[k * 2]! * 3 + 2]!;
+        linkZb[k] = za + wrapStep(za, f.pos[f.pairs[k * 2 + 1]! * 3 + 2]!);
+      }
+      for (const [b, data] of [
+        [buf.links, links],
+        [buf.points, points],
+      ] as const) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, b);
+        gl.bufferData(gl.ARRAY_BUFFER, data.byteLength, gl.DYNAMIC_DRAW);
+      }
+
       let start = 0;
       for (let i = 0; i < f.count; i++) {
         if (presence[i]! > 0.5 && Math.hypot(f.pos[i * 3]!, f.pos[i * 3 + 1]!) < Math.hypot(f.pos[start * 3]!, f.pos[start * 3 + 1]!)) start = i;
@@ -152,12 +180,12 @@ export const plexusScene: SceneFactory = {
       camXY = [f.pos[start * 3]!, f.pos[start * 3 + 1]!];
     };
 
-    /** Where the main pulse is now (x, y, z; z not wrapped, so the camera never jumps). */
-    const mainAt = (): [number, number, number] => {
-      const p = field!.pos;
-      const t = Math.min(1, main.t);
-      const za = p[main.from * 3 + 2]!;
-      return [p[main.from * 3]! + (p[main.to * 3]! - p[main.from * 3]!) * t, p[main.from * 3 + 1]! + (p[main.to * 3 + 1]! - p[main.from * 3 + 1]!) * t, za + wrapStep(za, p[main.to * 3 + 2]!) * t];
+    /** Where pulse `p` is now (x, y, z; z not wrapped, so the camera never jumps). */
+    const pulseAt = (p: Pulse): [number, number, number] => {
+      const pos = field!.pos;
+      const t = Math.min(1, p.t);
+      const za = pos[p.from * 3 + 2]!;
+      return [pos[p.from * 3]! + (pos[p.to * 3]! - pos[p.from * 3]!) * t, pos[p.from * 3 + 1]! + (pos[p.to * 3 + 1]! - pos[p.from * 3 + 1]!) * t, za + wrapStep(za, pos[p.to * 3 + 2]!) * t];
     };
 
     /** Moves the main pulse on by `dt` s; at each node, swells it and picks the next. */
@@ -185,41 +213,46 @@ export const plexusScene: SceneFactory = {
       branch(field!, branches, main.from, count, hops, main.to, present, rand);
     };
 
-    /** Writes every present link; returns how many. */
-    const fillLinks = (): number => {
-      const { pairs, pos, band } = field!;
-      let n = 0;
+    /**
+     * Writes and sends what can be seen this frame, packed: the links (present
+     * or marked, in view), the nodes (present, in view), the branches and the
+     * main pulse. Returns how many links and points.
+     */
+    const sendVisible = (camZ: number, halfX: number, halfY: number): [number, number] => {
+      const { pairs, pos, band, count } = field!;
+      const [cx, cy] = camXY;
+      /** Depth ahead of the camera, wrapped. */
+      const ahead = (z: number) => (((z - camZ) % DEPTH) + DEPTH) % DEPTH;
+      /** Is a point at x, y, depth z ahead in view (inside the screen, with a margin, between the fades)? */
+      const inView = (x: number, y: number, z: number) =>
+        z > SEEN_NEAR && z < SEEN_FAR && Math.abs(x - cx) < (halfX + SEEN_MARGIN) * z && Math.abs(y - cy) < (halfY + SEEN_MARGIN) * z;
+      let nl = 0;
       for (let k = 0; k < mark.length; k++) {
         const a = pairs[k * 2]!;
         const b = pairs[k * 2 + 1]!;
-        const s = Math.min(presence[a]!, presence[b]!);
-        if (s < 0.01 && mark[k]! < 0.01) continue;
+        const present = Math.min(presence[a]!, presence[b]!);
+        if (present < 0.01 && mark[k]! < 0.01) continue;
         const za = pos[a * 3 + 2]!;
-        const o = n * LINK;
+        const zb = linkZb[k]!;
+        const aheadA = ahead(za);
+        // B's depth ahead, from A's (so a link across the wrap stays whole: link.vert hides one that straddles the camera).
+        const aheadB = aheadA + (zb - za);
+        if (!inView(pos[a * 3]!, pos[a * 3 + 1]!, aheadA) && !inView(pos[b * 3]!, pos[b * 3 + 1]!, aheadB)) continue;
+        const o = nl++ * LINK;
         links[o] = pos[a * 3]!;
         links[o + 1] = pos[a * 3 + 1]!;
         links[o + 2] = za;
         links[o + 3] = band[a]!;
         links[o + 4] = pos[b * 3]!;
         links[o + 5] = pos[b * 3 + 1]!;
-        // B's depth next to A's (the short way across the wrap), so a link never spans the box.
-        links[o + 6] = za + wrapStep(za, pos[b * 3 + 2]!);
+        links[o + 6] = zb;
         links[o + 7] = band[b]!;
-        links[o + 8] = s;
+        links[o + 8] = present;
         links[o + 9] = mark[k]!;
-        n++;
       }
-      gl.bindBuffer(gl.ARRAY_BUFFER, linkBuffer);
-      gl.bufferData(gl.ARRAY_BUFFER, links.subarray(0, n * LINK), gl.DYNAMIC_DRAW);
-      return n;
-    };
-
-    /** Writes the nodes, the branches and the main pulse; returns how many points. */
-    const fillPoints = (): number => {
-      const { pos, band, count } = field!;
-      let n = 0;
+      let np = 0;
       const put = (x: number, y: number, z: number, b: number, s: number, p: number) => {
-        const o = n++ * POINT;
+        const o = np++ * POINT;
         points[o] = x;
         points[o + 1] = y;
         points[o + 2] = z;
@@ -227,40 +260,48 @@ export const plexusScene: SceneFactory = {
         points[o + 4] = s;
         points[o + 5] = p;
       };
-      for (let i = 0; i < count; i++) if (presence[i]! > 0.01) put(pos[i * 3]!, pos[i * 3 + 1]!, pos[i * 3 + 2]!, band[i]!, swell[i]!, presence[i]!);
-      for (const b of branches) {
-        const t = Math.min(1, b.t);
-        const za = pos[b.from * 3 + 2]!;
-        put(pos[b.from * 3]! + (pos[b.to * 3]! - pos[b.from * 3]!) * t, pos[b.from * 3 + 1]! + (pos[b.to * 3 + 1]! - pos[b.from * 3 + 1]!) * t, za + wrapStep(za, pos[b.to * 3 + 2]!) * t, band[b.from]!, 1, 1);
+      for (let i = 0; i < count; i++) {
+        if (presence[i]! < 0.01 || !inView(pos[i * 3]!, pos[i * 3 + 1]!, ahead(pos[i * 3 + 2]!))) continue;
+        put(pos[i * 3]!, pos[i * 3 + 1]!, pos[i * 3 + 2]!, band[i]!, swell[i]!, presence[i]!);
       }
-      const [x, y, z] = mainAt();
+      for (const b of branches) {
+        const [x, y, z] = pulseAt(b);
+        put(x, y, z, band[b.from]!, 1, 1);
+      }
+      // The main pulse: band -1 (node.vert draws it large, in the bright colour).
+      const [x, y, z] = pulseAt(main);
       put(x, y, z, -1, 1, 1);
-      gl.bindBuffer(gl.ARRAY_BUFFER, nodeBuffer);
-      gl.bufferData(gl.ARRAY_BUFFER, points.subarray(0, n * POINT), gl.DYNAMIC_DRAW);
-      return n;
+      for (const [b, data] of [
+        [buf.links, links.subarray(0, nl * LINK)],
+        [buf.points, points.subarray(0, np * POINT)],
+      ] as const) {
+        gl.bindBuffer(gl.ARRAY_BUFFER, b);
+        gl.bufferSubData(gl.ARRAY_BUFFER, 0, data);
+      }
+      return [nl, np];
     };
 
     /** The music's loudness with SENSITIVITY, from the signal's level. */
     const levelOf = (f: SceneFrame) => Math.min(1, f.signal[OFFSET.scalars + SCALAR.level]! * f.sensitivity);
 
+    /** Binds texture `t` to unit `unit` as sampler `name` of `program`. */
+    const sampler = (program: WebGLProgram, name: string, unit: number, t: WebGLTexture) => {
+      gl.activeTexture(gl.TEXTURE0 + unit);
+      gl.bindTexture(gl.TEXTURE_2D, t);
+      gl.uniform1i(loc(program, name), unit);
+    };
+
     const engine: SceneEngine = {
       draw(f) {
         const shape = f.w / Math.max(1, f.h);
         if (!field || Math.abs(shape - aspect) / aspect > 0.01) build(shape);
-        if (!fresh || fresh.w !== f.w || fresh.h !== f.h) {
-          if (fresh) deleteTarget(gl, fresh);
-          for (const t of trails) deleteTarget(gl, t);
-          fresh = createTarget(gl, f.w, f.h, float);
-          trails = [createTarget(gl, f.w, f.h, float), createTarget(gl, f.w, f.h, float)];
-        }
         const fld = field!;
         const target = gl.getParameter(gl.FRAMEBUFFER_BINDING) as WebGLFramebuffer | null;
         const sig = f.signal;
         const dt = f.dt;
 
         // 1. How much of the net is there: the loudness, eased, sets the density; nodes fade toward it.
-        const level = levelOf(f);
-        loudness += (level - loudness) * (1 - Math.exp(-dt / DENSITY_S));
+        loudness += (levelOf(f) - loudness) * (1 - Math.exp(-dt / DENSITY_S));
         const d = density(loudness);
         const kIn = 1 - Math.exp(-dt / PRESENCE_IN_S);
         const kOut = 1 - Math.exp(-dt / PRESENCE_OUT_S);
@@ -270,8 +311,8 @@ export const plexusScene: SceneFactory = {
           presence[i] = p + (want - p) * (want > p ? kIn : kOut);
         }
         // The main pulse's own nodes stay (it never runs through nothing).
-        presence[main.from] = Math.max(presence[main.from]!, 1);
-        presence[main.to] = Math.max(presence[main.to]!, 1);
+        presence[main.from] = 1;
+        presence[main.to] = 1;
 
         // 2–5. The main pulse, the beat's branches, the marks and swells fading.
         stepMain(dt);
@@ -285,16 +326,22 @@ export const plexusScene: SceneFactory = {
         for (let i = 0; i < swell.length; i++) swell[i]! *= fadeSwell;
 
         // The camera: FOLLOW behind the pulse, easing sideways after it.
-        const [mx, my, mz] = mainAt();
+        const [mx, my, mz] = pulseAt(main);
         const kFollow = 1 - Math.exp(-dt / FOLLOW_S);
         camXY = [camXY[0] + (mx - camXY[0]) * kFollow, camXY[1] + (my - camXY[1]) * kFollow];
         const camZ = (((mz - FOLLOW) % DEPTH) + DEPTH) % DEPTH;
         const scale = f.h * SCALE_OF_HEIGHT * f.zoom;
-        const linkCount = fillLinks();
-        const pointCount = fillPoints();
+        const [linkCount, pointCount] = sendVisible(camZ, (0.5 * f.w) / scale, (0.5 * f.h) / scale);
 
-        // The frame's light, added, into the scene's own buffer.
-        gl.bindFramebuffer(gl.FRAMEBUFFER, fresh.framebuffer);
+        // 6. Where the light goes: straight onto the target without trails; into the fresh buffer with them.
+        const withTrails = f.trails > 0.001;
+        if (withTrails && (!fresh || fresh.w !== f.w || fresh.h !== f.h)) {
+          if (fresh) deleteTarget(gl, fresh);
+          for (const t of trails) deleteTarget(gl, t);
+          fresh = createTarget(gl, f.w, f.h, float);
+          trails = [createTarget(gl, f.w, f.h, float), createTarget(gl, f.w, f.h, float)];
+        }
+        gl.bindFramebuffer(gl.FRAMEBUFFER, withTrails ? fresh!.framebuffer : target);
         gl.viewport(0, 0, f.w, f.h);
         gl.clearColor(0, 0, 0, 1);
         gl.clear(gl.COLOR_BUFFER_BIT);
@@ -302,7 +349,7 @@ export const plexusScene: SceneFactory = {
         gl.blendFunc(gl.ONE, gl.ONE);
         for (const [program, vao, count] of [
           [linkProgram, linkVao, linkCount],
-          [nodeProgram, nodeVao, pointCount],
+          [nodeProgram, pointVao, pointCount],
         ] as const) {
           f.bind(program);
           gl.uniform1f(loc(program, 'uCamZ'), camZ);
@@ -310,23 +357,17 @@ export const plexusScene: SceneFactory = {
           gl.uniform1f(loc(program, 'uDepth'), DEPTH);
           gl.uniform1f(loc(program, 'uScale'), scale);
           gl.bindVertexArray(vao);
-          gl.drawArraysInstanced(gl.TRIANGLES, 0, 6, count);
+          gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, count);
         }
         gl.bindVertexArray(null);
         gl.disable(gl.BLEND);
+        if (!withTrails || !fresh) return;
 
         // The trail history: last frame's, pushed and faded, against this frame's light.
         const write = trails[trailTurn]!;
         const read = trails[1 - trailTurn]!;
         trailTurn = 1 - trailTurn;
-        /** Binds texture `t` to unit `unit` as sampler `name` of `program`. */
-        const sampler = (program: WebGLProgram, name: string, unit: number, t: WebGLTexture) => {
-          gl.activeTexture(gl.TEXTURE0 + unit);
-          gl.bindTexture(gl.TEXTURE_2D, t);
-          gl.uniform1i(loc(program, name), unit);
-        };
         gl.bindFramebuffer(gl.FRAMEBUFFER, write.framebuffer);
-        gl.viewport(0, 0, f.w, f.h);
         f.bind(trailProgram);
         sampler(trailProgram, 'uFresh', 2, fresh.texture);
         sampler(trailProgram, 'uTrailPrev', 3, read.texture);
@@ -334,7 +375,6 @@ export const plexusScene: SceneFactory = {
 
         // Onto the scene's target: the fresh light, the history dimmed behind it.
         gl.bindFramebuffer(gl.FRAMEBUFFER, target);
-        gl.viewport(0, 0, f.w, f.h);
         f.bind(composeProgram);
         sampler(composeProgram, 'uFresh', 2, fresh.texture);
         sampler(composeProgram, 'uTrail', 3, write.texture);
@@ -348,10 +388,8 @@ export const plexusScene: SceneFactory = {
       },
       destroy() {
         for (const p of [linkProgram, nodeProgram, trailProgram, composeProgram]) gl.deleteProgram(p);
-        gl.deleteBuffer(linkBuffer);
-        gl.deleteBuffer(nodeBuffer);
-        gl.deleteVertexArray(linkVao);
-        gl.deleteVertexArray(nodeVao);
+        for (const b of Object.values(buf)) gl.deleteBuffer(b);
+        for (const v of [linkVao, pointVao]) gl.deleteVertexArray(v);
         if (fresh) deleteTarget(gl, fresh);
         for (const t of trails) deleteTarget(gl, t);
       },

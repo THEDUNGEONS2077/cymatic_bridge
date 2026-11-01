@@ -33,9 +33,10 @@ export interface SceneFrame {
   w: number;
   h: number;
   dpr: number;
-  /** The scene's ZOOM and SENSITIVITY (also uZoom, uSensitivity), for scenes that work on the CPU side. */
+  /** The scene's ZOOM, SENSITIVITY and TRAILS (also uZoom, uSensitivity, uTrails; trails 0 when off), for scenes that work on the CPU side. */
   zoom: number;
   sensitivity: number;
+  trails: number;
   /** Real time (s) and this frame's step (s). */
   time: number;
   dt: number;

@@ -25,13 +25,18 @@ vec2 project(vec3 c) {
   return 0.5 * uRes + c.xy / c.z * uScale;
 }
 
-// How visible at depth z: faded in from the far dark, and out just before
-// the camera passes it, so nothing pops in or out. The far fade is long and
+// How visible at depth z: faded in from the far dark, and out before the
+// camera passes it, so nothing pops in or out. The far fade is long and
 // curved (0.4.0's first build faded only the last 2.5 units, and the far
 // field, crowded into the centre by perspective, added up to a white knot).
+// The near fade is gone by depth 0.35 and full by 1.1 (0.4.1): with the net
+// filling the screen, what passes right by the camera is drawn huge (long,
+// wide quads, big halos) for faint, out-of-focus light, and was most of
+// each frame's pixels. The pulse is 1.7 ahead, in full view.
 float fogOf(float z) {
   float far = clamp((uDepth - z) / 5.0, 0.0, 1.0);
-  return far * far * clamp((z - 0.2) / 0.5, 0.0, 1.0);
+  float near = clamp((z - 0.35) / 0.75, 0.0, 1.0);
+  return far * far * near * near;
 }
 
 // Device px to clip space.

@@ -2,6 +2,22 @@
 
 Each release, in the user's words where they gave them. The build number counts every release.
 
+## 0.4.1 (build 6)
+**More of the net, smoother.** The user: "I would like there to be more of the net. Take the current design approach and expand/extend it". It should fill the screen, as "the same quiet stage", and "Try to maximise visual performance and keep latency as low as possible, the main goal is for it to be the smoothest it can be".
+- **The net fills the screen:**
+  - the box grew from 5.2 × 2.8 to 9.2 × 5.2 units: about 1,100 nodes on a 16:9 screen (was 340), at the same density;
+  - a quiet net keeps a third spread over the whole screen, not bunched in the middle, plus a thin spine down the centre so the main pulse always has a way through;
+  - its brightness is unchanged.
+- **Less work per frame:**
+  - only what can be seen is drawn: links and nodes that are absent, out of view to the sides, or inside the near and far fades are skipped on the CPU, and the rest are packed into buffers made once;
+  - a quad is 4 vertices, not 6;
+  - a quiet link's glow is slim, while a marked or loud one keeps GLOW's full width;
+  - light too faint to show is not blended;
+  - things fade out by depth 0.35 as they near the camera;
+  - with TRAILS off, PLEXUS draws straight onto the screen target, skipping three passes;
+  - the field is built from a grid (25 ms at the widest screen, not a quadratic search).
+- **Measured** (software rendering on the dev machine, 1280×720, under the test music): the 3× net runs as fast as the old one (10.8 fps against 10.5). Drawn naively, it ran at 6.5. Sending each link's loudness from the CPU was tried and measured no faster, so it was left out.
+
 ## 0.4.0 (build 5)
 **S4: PLEXUS**, the first real scene. The user: "This is perfect".
 - **How it was found:**

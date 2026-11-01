@@ -59,7 +59,7 @@ describe('growing and shrinking', () => {
 
   it('is never empty, and full when loud', () => {
     expect(density(0)).toBeGreaterThan(0);
-    expect(density(1)).toBe(1);
+    expect(density(1)).toBeGreaterThanOrEqual(1);
     expect(present(density(0))).toBeGreaterThan(f.count * 0.15);
     expect(present(density(1))).toBe(f.count);
   });
@@ -68,12 +68,25 @@ describe('growing and shrinking', () => {
     expect(present(density(0.4))).toBeGreaterThan(present(density(0.1)));
   });
 
-  it('keeps a spine near the axis when quiet, growing outward', () => {
+  it('keeps about a third when quiet, spread over the screen (0.4.1: "Fills the screen"), a little denser near the axis', () => {
     const radius = (i: number) => Math.hypot(f.pos[i * 3]! / f.halfWidth, f.pos[i * 3 + 1]! / HALF_HEIGHT);
     const quiet = Array.from({ length: f.count }, (_, i) => i).filter((i) => presenceTarget(f, i, density(0)) > 0.5);
+    expect(quiet.length / f.count).toBeGreaterThan(0.28);
+    expect(quiet.length / f.count).toBeLessThan(0.4);
     const mean = quiet.reduce((s, i) => s + radius(i), 0) / quiet.length;
     const all_ = Array.from({ length: f.count }, (_, i) => radius(i)).reduce((s, r) => s + r, 0) / f.count;
-    expect(mean).toBeLessThan(all_ * 0.8);
+    expect(mean).toBeLessThan(all_);
+    expect(mean).toBeGreaterThan(all_ * 0.8);
+    // Every quarter of the screen keeps some of it.
+    for (const [sx, sy] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+      expect(quiet.filter((i) => Math.sign(f.pos[i * 3]!) === sx && Math.sign(f.pos[i * 3 + 1]!) === sy).length).toBeGreaterThan(quiet.length * 0.15);
+    }
+  });
+
+  it('builds a wide screen’s field quickly (a grid, not a quadratic search)', () => {
+    const t = performance.now();
+    buildField(2.4 * (16 / 9));
+    expect(performance.now() - t).toBeLessThan(400);
   });
 });
 

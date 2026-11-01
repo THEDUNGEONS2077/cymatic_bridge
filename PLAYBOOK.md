@@ -63,6 +63,12 @@ Lessons from cymatic_bridge, written so other projects can reuse them. cyberdeck
 ## 5. The SIGNAL texture
 **5.1 One small texture carries everything.** RG16F, 64 bands × (now + waveform + a 128-row history ring): 33 KB on the card and 1 KB uploaded a frame. Write history rows at a fixed rate (64 a second), not per frame, so history scrolls the same at any frame rate. Read rows at their centres so linear filtering blends bands but never rows. *Where:* `scene/gl/signalTexture.ts`, `scene/shaders/signal.glsl`.
 
+**4.6 Find a frame's cost by leaving parts out.** Throwaway builds that skip one draw each (no links, no nodes, neither, links as slivers) told PLEXUS's cost in four runs: links, and their vertices more than their pixels. Guessing (fading near things, shrinking quads) had bought almost nothing (0.4.1).
+
+**4.7 When most instances are hidden, send only the visible ones.** A static buffer plus a per-frame state buffer looks cheaper, but every instance still runs its vertices. With two-thirds of a net absent and more out of view, culling on the CPU and packing the visible ones into a buffer made once (bufferSubData) ran 3× the net as fast as the old one (0.4.1).
+
+**4.8 Keep only what measures faster.** Working each link's loudness out on the CPU (so no vertex reads the signal texture) measured no faster, so it was reverted: simpler wins a tie.
+
 ## 6. Finding a scene with the user
 **6.1 Mock-ups first, in rounds.** Three directions on one page, driven by one synthetic track (with optional sound, and the real palettes), published for the user. Then variations of the one they pick. Canvas 2D is enough to judge a direction; the build is the real thing (`mockups/`).
 

@@ -18,7 +18,8 @@ flat out float vAlpha;
 const float MAX_SIZE = 120.0;
 
 void main() {
-  vec2 q = vec2[6](vec2(-1.0, -1.0), vec2(1.0, -1.0), vec2(1.0, 1.0), vec2(-1.0, -1.0), vec2(1.0, 1.0), vec2(-1.0, 1.0))[gl_VertexID];
+  // Four corners, a triangle strip.
+  vec2 q = vec2[4](vec2(-1.0, -1.0), vec2(1.0, -1.0), vec2(-1.0, 1.0), vec2(1.0, 1.0))[gl_VertexID];
   vec3 c = toCamera(aNode.xyz);
   float fog = fogOf(c.z);
   bool isMain = aNode.w < 0.0;
@@ -26,13 +27,14 @@ void main() {
   float swell = aState.x;
   float present = aState.y;
   vAlpha = isMain ? 1.0 : (0.22 + 0.45 * e + 0.6 * swell) * fog * present;
-  if (vAlpha < 0.003 || c.z < 0.15) {
+  if (vAlpha < 0.003 || c.z < 0.35) {
     gl_Position = HIDDEN;
     return;
   }
   // The main pulse: big, breathing with the level and flaring on the beat.
   float css = isMain ? 26.0 + 30.0 * uLevel + 26.0 * uBeat : 4.0 + 12.0 * e + 22.0 * swell;
-  float size = min(MAX_SIZE, css / c.z * (0.8 + 0.4 * uGlow)) * uDpr;
+  // A faint node's halo is invisible at the quad's rim: a smaller quad for it (fewer pixels; same look).
+  float size = min(MAX_SIZE, css / c.z * (0.8 + 0.4 * uGlow)) * uDpr * mix(0.6, 1.0, clamp(vAlpha * 2.0, 0.0, 1.0));
   vUv = q;
   vColor = isMain ? uColBright : freqColor(aNode.w, e);
   gl_Position = clipOf(project(c) + q * 0.5 * size);

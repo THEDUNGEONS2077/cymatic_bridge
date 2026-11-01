@@ -19,22 +19,31 @@
  * The net itself holds still: no wander, no rewiring.
  *
  * The box of nodes is DEPTH deep and wraps round in depth, so the pulse can
- * run forward for ever. It's as wide as the screen's shape needs. Every node
- * listens to one band picked at random (R24: scattered, colour showing
- * which). All of it comes from one seed.
+ * run forward for ever. It's wide and tall enough to reach the screen's
+ * edges and corners near the camera (0.4.1, the user: "I would like there to
+ * be more of the net … Fills the screen"), at the same density as before
+ * (~2.9 nodes a cubic unit), so a 16:9 screen has
+ * about 1,100 nodes. Every node listens to one band picked at random (R24:
+ * scattered, colour showing which). All of it comes from one seed.
  */
 
 /** How deep the box is (world units). */
 export const DEPTH = 8;
-/** Half the box's height (world units). */
-export const HALF_HEIGHT = 1.4;
-/** Half its width on a 16:9 screen; other shapes scale it. */
-export const HALF_WIDTH_16_9 = 2.6;
-/** Nodes on a 16:9 screen; other shapes scale it with the width. */
-export const NODES_16_9 = 340;
+/**
+ * Half the box's height and half its width on a 16:9 screen (other shapes
+ * scale the width): the screen's edges at about depth 2 (the projection's
+ * SCALE_OF_HEIGHT, engine.ts), so the net reaches every edge and corner.
+ * 0.4.0 had 1.4 and 2.6: the edges were empty beyond depth 1.
+ */
+export const HALF_HEIGHT = 2.6;
+export const HALF_WIDTH_16_9 = 4.6;
+/** Nodes on a 16:9 screen (0.4.0's density over the larger box); other shapes scale it with the width. */
+export const NODES_16_9 = 1100;
 /** Each node's links: its nearest few within a distance. */
 export const LINKS_PER_NODE = 5;
 export const MAX_LINK = 1.1;
+/** Nodes within this distance of the flight's axis rank low: a spine the main pulse can always run down. */
+export const SPINE = 0.7;
 /** The field's seed. */
 export const SEED = 31;
 
@@ -79,9 +88,12 @@ export function distance(field: Field, i: number, j: number): number {
 }
 
 /**
- * The field for a screen of `aspect` (width / height). Ranks are low near
- * the flight's axis and spread outward (plus noise), so the net always
- * keeps a spine for the main pulse, and grows outward as the music fills.
+ * The field for a screen of `aspect` (width / height). Ranks lean a little
+ * low near the flight's axis (mostly noise), so a quiet net still spreads
+ * over the whole screen (0.4.1: "Fills the screen") with a touch more near
+ * the pulse's way. Links come from a grid of MAX_LINK cells (wrapping in
+ * depth): each node looks only at the 27 cells round its own, so a resize
+ * (a new field) costs a few ms, not a quadratic search.
  */
 export function buildField(aspect: number, seed = SEED): Field {
   const shape = Math.min(2.4, Math.max(0.5, aspect / (16 / 9)));
@@ -98,19 +110,47 @@ export function buildField(aspect: number, seed = SEED): Field {
     pos[i * 3 + 1] = y;
     pos[i * 3 + 2] = rand() * DEPTH;
     band[i] = rand();
-    // Near the axis ranks low (always there); out at the edges, high (there only when loud).
+    // Mostly chance; a little lower near the axis; and a spine (within SPINE of the axis) nearly
+    // always there, so the main pulse always has a way down the middle.
     const out = Math.min(1, Math.hypot(x / halfWidth, y / HALF_HEIGHT) / Math.SQRT2);
-    rank[i] = Math.min(1, 0.6 * out + 0.4 * rand());
+    const r = Math.min(1, 0.25 * out + 0.75 * rand());
+    rank[i] = Math.hypot(x, y) < SPINE ? r * 0.3 : r;
   }
   const list: number[] = [];
   const seen = new Set<number>();
   const field = { count, pos, band, rank, pairs: new Uint16Array(0), adj: [] as [number, number][][], halfWidth };
+  // The grid: cells MAX_LINK on a side, wrapping in depth.
+  const nx = Math.max(1, Math.ceil((2 * halfWidth) / MAX_LINK));
+  const ny = Math.max(1, Math.ceil((2 * HALF_HEIGHT) / MAX_LINK));
+  const nz = Math.max(1, Math.floor(DEPTH / MAX_LINK));
+  const cellOf = (i: number): [number, number, number] => [
+    Math.min(nx - 1, Math.floor((pos[i * 3]! + halfWidth) / MAX_LINK)),
+    Math.min(ny - 1, Math.floor((pos[i * 3 + 1]! + HALF_HEIGHT) / MAX_LINK)),
+    Math.min(nz - 1, Math.floor((pos[i * 3 + 2]! / DEPTH) * nz)),
+  ];
+  const cells = new Map<number, number[]>();
+  const key3 = (x: number, y: number, z: number) => (z * ny + y) * nx + x;
+  for (let i = 0; i < count; i++) {
+    const [x, y, z] = cellOf(i);
+    const k = key3(x, y, z);
+    const c = cells.get(k);
+    if (c) c.push(i);
+    else cells.set(k, [i]);
+  }
   for (let i = 0; i < count; i++) {
     const near: [number, number][] = [];
-    for (let j = 0; j < count; j++) {
-      if (j === i) continue;
-      const d = distance(field, i, j);
-      if (d < MAX_LINK) near.push([j, d]);
+    const [cx, cy, cz] = cellOf(i);
+    const zs = new Set([(cz - 1 + nz) % nz, cz, (cz + 1) % nz]);
+    for (let x = Math.max(0, cx - 1); x <= Math.min(nx - 1, cx + 1); x++) {
+      for (let y = Math.max(0, cy - 1); y <= Math.min(ny - 1, cy + 1); y++) {
+        for (const z of zs) {
+          for (const j of cells.get(key3(x, y, z)) ?? []) {
+            if (j === i) continue;
+            const d = distance(field, i, j);
+            if (d < MAX_LINK) near.push([j, d]);
+          }
+        }
+      }
     }
     near.sort((a, b) => a[1] - b[1]);
     for (const [j] of near.slice(0, LINKS_PER_NODE)) {
@@ -131,12 +171,13 @@ export function buildField(aspect: number, seed = SEED): Field {
 
 /**
  * How dense the net is at loudness `level` (0..1): the rank below which
- * nodes are present. 0.47 when silent keeps about a third of the net, most
- * of it near the axis (measured on the 16:9 field); typical music (level
- * 0.2–0.4) brings most of it in; full by about 0.5.
+ * nodes are present. 0.4 when silent keeps about a third of the net, spread
+ * over the whole screen (34%, measured on the 16:9 field); typical music
+ * (level 0.2–0.4) brings most of it in; full by about 0.55.
  */
 export function density(level: number): number {
-  return Math.min(1, 0.47 + 1.1 * Math.max(0, level));
+  // Up to 1.06: a little past the highest rank, so a loud net is whole (presenceTarget eases over 0.06).
+  return Math.min(1.06, 0.4 + 1.1 * Math.max(0, level));
 }
 
 /** How present node `i` should be at density `d`: 1 below its rank, 0 above, eased across a small margin. */
@@ -155,8 +196,9 @@ export function nextForward(field: Field, at: number, present: (node: number) =>
     if (present(n) < 0.5) continue;
     const ahead = wrapStep(z0, p[n * 3 + 2]!);
     if (ahead < 0.08) continue;
-    // Off the centre line costs; a longer stride forward helps; a little noise so the path isn't fixed.
-    const score = Math.hypot(p[n * 3]!, p[n * 3 + 1]!) - 0.6 * ahead + 0.25 * rand();
+    // Off the centre line costs (twice: the net spreads over the whole screen, 0.4.1, and the
+    // pulse should still hold the middle); a longer stride forward helps; a little noise so the path isn't fixed.
+    const score = 2 * Math.hypot(p[n * 3]!, p[n * 3 + 1]!) - 0.6 * ahead + 0.25 * rand();
     if (score < bestScore) {
       bestScore = score;
       best = n;

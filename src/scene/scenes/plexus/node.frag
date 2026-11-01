@@ -14,6 +14,8 @@ void main() {
   float body = exp(-r2 / 0.06);
   // The halo reaches the quad's edge at nothing.
   float halo = exp(-r2 / 0.25) * (1.0 - sqrt(r2));
-  vec3 col = mix(vColor, vec3(1.0), 0.5) * core + vColor * (0.9 * body + (0.2 + 0.3 * uGlow) * halo);
-  outColor = vec4(col * vAlpha, 1.0);
+  vec3 col = (mix(vColor, vec3(1.0), 0.5) * core + vColor * (0.9 * body + (0.2 + 0.3 * uGlow) * halo)) * vAlpha;
+  // Light the screen can't show isn't blended (fewer writes).
+  if (max(col.r, max(col.g, col.b)) < 1.0 / 1024.0) discard;
+  outColor = vec4(col, 1.0);
 }

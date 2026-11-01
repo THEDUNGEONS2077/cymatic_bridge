@@ -186,6 +186,18 @@ The user, on S1: "it doesn't really feel on time". The visuals lagged the sound.
 | Stage drawing, CPU side, p95 | 0.4–0.9 ms a frame |
 | TEST, software-rendered, 1600×900 | 14–19 fps (no GPU here; not the user's number) |
 
+**0.4.1 (2026-11-01), PLEXUS under the test music,** software-rendered at 1280×720 on the dev machine. Only the ratios mean anything; the user's GPU is far faster.
+
+| PLEXUS build | fps |
+|---|---|
+| 0.4.0: 340 nodes, every link sent and drawn | 10.5 |
+| 3× the net, drawn the same way | 6.5 |
+| … without its links / without its nodes / without either (to find the cost) | 24.5 / 6.7 / 38.3 |
+| … links as 2 px slivers (vertex-bound, not fill) | 9.5 |
+| … slim glow for quiet links | 7.5 |
+| … CPU culling, packed buffers, 4-vertex strips (0.4.1) | 10.8 |
+| … plus loudness worked out on the CPU (no texture reads per vertex): no faster, left out | 10.9 |
+
 ## 10. Testing
 - **`npm run check`:** typecheck, lint and Vitest. There are 53 tests:
   - SIGNAL on synthetic analyser frames:
@@ -275,11 +287,11 @@ A webpage can't read another tab's title, so the shared tab names itself.
 
 ## 14. PLEXUS (`scene/scenes/plexus/`, 0.4.0)
 - **`field.ts`** (pure, tested) is the world:
-  - 340 nodes on a 16:9 screen (scaled with the width), in a box 2.6 × 1.4 × 8 that wraps in depth;
-  - each node has a band and a rank (low near the centre line, plus noise);
-  - links join each node to its 5 nearest within 1.1, across the wrap;
-  - `density(level)`: the rank below which a node is present: 0.47 + 1.1 × level;
-  - `nextForward`: the main pulse's next node, present and ahead (never back), chosen by its distance off the centre line less 0.6 × the stride, plus a little noise. A dead end jumps to the nearest present node ahead;
+  - about 1,100 nodes on a 16:9 screen (scaled with the width; 340 before 0.4.1), in a box of half-size 4.6 × 2.6, 8 deep, that wraps in depth: it reaches the screen's edges near the camera;
+  - each node has a band and a rank: mostly random, a little lower near the centre line, and × 0.3 within 0.7 of it (the spine);
+  - links join each node to its 5 nearest within 1.1, across the wrap, found through a grid of 1.1 cells (25 ms at the widest screen);
+  - `density(level)`: the rank below which a node is present: 0.4 + 1.1 × level, up to 1.06;
+  - `nextForward`: the main pulse's next node, present and ahead (never back), chosen by twice its distance off the centre line less 0.6 × the stride, plus a little noise. A dead end jumps to the nearest present node ahead;
   - `branch` / `stepBranches`: the branches, along present links, marking them.
 - **`engine.ts`**, each frame:
   1. the loudness, eased over 1.2 s, sets the density; each node's presence eases toward it;
@@ -287,7 +299,13 @@ A webpage can't read another tab's title, so the shared tab names itself.
   3. a new beat count splits off the branches;
   4. marks fade (3.5 s) and swells fade;
   5. the camera sits 1.7 behind the pulse (depth wrapped on the CPU in double precision), easing sideways after it (0.6 s);
-  6. the draw passes: links (instanced quads, 10 floats each: the ends, presence and mark) and points (6 floats: nodes, branches, and the main pulse as band −1), additive, into the scene's `fresh` buffer; `trail.frag` keeps the trail history (two buffers, ping-ponged, full strength, pushed outward, faded by TRAILS); `compose.frag` lays fresh onto the target, the brighter of it and the history × 0.4.
+  6. **culling** (0.4.1): only links and nodes that are present (or marked), in view to the sides (with a margin) and between the fades (depth 0.35–7.6) are written, packed, into buffers made once per field (bufferSubData). That's 10 floats a link (the ends, presence and mark) and 6 a point (nodes, branches, and the main pulse as band −1);
+  7. the draw: two instanced draws of 4-vertex strips, additive. With TRAILS off they go straight onto the scene's target. With TRAILS on they go into the scene's `fresh` buffer; then `trail.frag` keeps the trail history (two buffers, ping-ponged, full strength, pushed outward, faded by TRAILS), and `compose.frag` lays fresh onto the target, the brighter of it and the history × 0.4.
+- **Less to draw** (0.4.1):
+  - a link's quad reaches only as far as its light is visible (above 1/512);
+  - a quiet link's glow is slim (GLOW's width only for marked or loud links);
+  - a faint node's quad is smaller;
+  - light under 1/1024 is discarded, not blended.
 - **Shaders:**
   - `camera.glsl`: depth ahead (wrapped), the camera's sideways position, the projection and the fog;
   - `link.vert` / `link.frag`: cyberdeck's glowing line on screen-space quads, with round ends;

@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PLEXUS Depth Variations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  /*
+   * PLEXUS mock-ups for cymatic_bridge (S4), round 2: the user picked
+   * direction B, DEPTH. Four variations of it, all driven by one synthetic
+   * 120 BPM track. One visual world (black, like the app), so no light theme.
+   * Layout: a header, a sticky control bar (sound, palette), then the four
+   * variations stacked, each a wide canvas with its notes beside it.
+   */
+  :root {
+    --bg: #000000;
+    --surface: #07050d;
+    --line: #261a3d;
+    --line-lit: #442059;
+    --text: #bb8ef0;
+    --text-dim: #a173e0;
+    --accent: #c25bff;
+    --bright: #ecd6ff;
+    --font: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 13px; line-height: 1.55; }
+  header { padding: 28px 24px 12px; max-width: 1240px; margin: 0 auto; }
+  h1 { margin: 0 0 6px; font-size: 18px; letter-spacing: 0.12em; color: var(--accent); text-shadow: 0 0 6px color-mix(in srgb, var(--accent) 35%, transparent); text-wrap: balance; }
+  .lede { margin: 0; max-width: 72ch; color: var(--bright); }
+  .lede span { color: var(--text); }
+  .bar { position: sticky; top: 0; z-index: 5; background: color-mix(in srgb, var(--bg) 86%, transparent); border-bottom: 1px solid var(--line-lit); }
+  .bar-inner { max-width: 1240px; margin: 0 auto; padding: 10px 24px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+  .bar-label { color: var(--text-dim); letter-spacing: 0.08em; font-size: 11px; }
+  button { font: inherit; font-size: 11px; letter-spacing: 0.06em; height: 26px; padding: 0 10px; color: var(--text); background: var(--bg); border: 1px solid var(--line-lit); border-radius: 2px; cursor: pointer; }
+  button:hover, button:focus-visible { color: var(--bright); border-color: var(--accent); box-shadow: 0 0 6px color-mix(in srgb, var(--accent) 35%, transparent); }
+  button:focus-visible { outline: 1px solid var(--bright); outline-offset: 1px; }
+  button[aria-pressed="true"] { color: var(--bright); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--bg)); }
+  .swatches { display: flex; gap: 6px; flex-wrap: wrap; }
+  .swatch { display: inline-flex; align-items: center; gap: 6px; }
+  .chip { width: 22px; height: 8px; border-radius: 1px; }
+  .section { tabular-nums: auto; font-variant-numeric: tabular-nums; color: var(--text-dim); font-size: 11px; margin-left: auto; }
+  main { max-width: 1240px; margin: 0 auto; padding: 18px 24px 48px; display: grid; gap: 22px; }
+  .dir { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 18px; align-items: start; }
+  .stage { position: relative; border: 1px solid var(--line-lit); background: #000; aspect-ratio: 16 / 8; }
+  .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .tag { position: absolute; left: 10px; top: 8px; font-size: 11px; letter-spacing: 0.1em; color: var(--bright); text-shadow: 0 0 4px #000; }
+  .notes h2 { margin: 2px 0 6px; font-size: 14px; letter-spacing: 0.1em; color: var(--accent); }
+  .notes p { margin: 0 0 8px; color: var(--bright); }
+  .notes ul { margin: 0; padding-left: 16px; }
+  .notes li { margin-bottom: 4px; }
+  footer { max-width: 1240px; margin: 0 auto; padding: 0 24px 32px; color: var(--text-dim); font-size: 11px; }
+  @media (max-width: 860px) { .dir { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>PLEXUS · DEPTH, FOUR WAYS</h1>
+  <p class="lede">You picked <span>B · DEPTH</span>. Here it is four ways, each keeping your choices: <span>nodes scattered, colour showing their band</span> (bass = the palette's first colour, treble = its second), and on each beat <span>signals race along links, nodes swell and the net flashes</span>, brightest on the near side. Pick one, or say which parts to combine.</p>
+</header>
+
+<div class="bar">
+  <div class="bar-inner">
+    <button type="button" id="sound" aria-pressed="false">PLAY SOUND</button>
+    <span class="bar-label">PALETTE</span>
+    <div class="swatches" id="swatches" role="group" aria-label="Palette"></div>
+    <span class="section" id="section" aria-live="off">BAR 1 · FULL</span>
+  </div>
+</div>
+
+<main>
+  <section class="dir" aria-labelledby="b1-title">
+    <div class="stage"><canvas id="b1" aria-label="Variation B1, CLOUD, animated"></canvas><span class="tag">B1 · CLOUD</span></div>
+    <div class="notes">
+      <h2 id="b1-title">B1 · CLOUD</h2>
+      <p>The first round's DEPTH, refined: a loose cloud turning in space.</p>
+      <ul>
+        <li>Denser toward its middle; the turn follows the flow clock (faster when loud).</li>
+        <li>Far nodes are dimmer and smaller; near ones big and bright.</li>
+        <li>Calm and centred: the cloud always fills the middle of the screen.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="dir" aria-labelledby="b2-title">
+    <div class="stage"><canvas id="b2" aria-label="Variation B2, FLIGHT, animated"></canvas><span class="tag">B2 · FLIGHT</span></div>
+    <div class="notes">
+      <h2 id="b2-title">B2 · FLIGHT</h2>
+      <p>The camera flies forward through an endless plexus.</p>
+      <ul>
+        <li>Nodes appear in the far dark, grow as they come at you, and slip past the edges.</li>
+        <li>Speed follows the flow clock: a breakdown drifts, a drop rushes.</li>
+        <li>Fills the whole screen, edge to edge: the most immersive in fullscreen.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="dir" aria-labelledby="b3-title">
+    <div class="stage"><canvas id="b3" aria-label="Variation B3, ORB, animated"></canvas><span class="tag">B3 · ORB</span></div>
+    <div class="notes">
+      <h2 id="b3-title">B3 · ORB</h2>
+      <p>The plexus wrapped on a sphere, turning.</p>
+      <ul>
+        <li>The orb breathes: its radius swells with the bass and kicks out on each beat.</li>
+        <li>The far side shows through the near, dimmed, so it reads as a glass globe.</li>
+        <li>A strong single shape at the centre, with dark space around it.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="dir" aria-labelledby="b4-title">
+    <div class="stage"><canvas id="b4" aria-label="Variation B4, GALAXY, animated"></canvas><span class="tag">B4 · GALAXY</span></div>
+    <div class="notes">
+      <h2 id="b4-title">B4 · GALAXY</h2>
+      <p>A spiral disc of three arms, tilted toward you, turning.</p>
+      <ul>
+        <li>Thickest at the core, thinning to the rim.</li>
+        <li>The turn follows the flow clock; signals run along the arms.</li>
+        <li>Wide and low: it suits a landscape screen.</li>
+      </ul>
+    </div>
+  </section>
+</main>
+<footer>Test track: 120 BPM, kick on every beat, snare on 2 and 4, off-beat hats, a bassline and a pad; bars 13–16 of every 16 drop the kick (a breakdown). Flashes are limited as the app limits them (at most 3 a second). Mock-ups are drawn with Canvas 2D; the real scene will be WebGL on SIGNAL, with smooth glowing lines.</footer>
+
+<script>
+'use strict';
+// --- The palettes (cymatic_bridge 0.3.0's eight: accent = bass, cool = treble, bright = beat accents). ---
+const PALETTES = [
+  ['UV', '#c25bff', '#20e0c0', '#ecd6ff'], ['LASER', '#ff2e4d', '#5fe3ff', '#ffcbd2'], ['ACID', '#b8ff2e', '#8a5cff', '#edffcb'],
+  ['SOLAR', '#ff8a1f', '#3a6dff', '#ffe2c7'], ['AURORA', '#3dffb0', '#ff4fd8', '#ceffeb'], ['TOXIC', '#ffe32e', '#a04dff', '#fff8cb'],
+  ['FROST', '#9fd8ff', '#5b5bff', '#e7f5ff'], ['FLARE', '#ff4fb3', '#2ee6ff', '#ffd3ec'],
+];
+const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+const mixc = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
+let pal = { accent: hex(PALETTES[0][1]), cool: hex(PALETTES[0][2]), bright: hex(PALETTES[0][3]) };
+// Frequency → colour (the app's freqColor): accent at the bass, cool at the treble, lifted toward bright when loud.
+function freqColor(x, e) {
+  const c = mixc(pal.accent, pal.cool, x * x * (3 - 2 * x));
+  return mixc(c, pal.bright, 0.35 * e * e);
+}
+const rgba = (c, a) => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${Math.max(0, Math.min(1, a))})`;
+
+// Glow sprites along the ramp (16 steps), rebuilt when the palette changes: cheaper than a gradient per node.
+const SPRITES = 16;
+let sprites = [];
+function buildSprites() {
+  sprites = [];
+  for (let k = 0; k < SPRITES; k++) {
+    const c = freqColor(k / (SPRITES - 1), 0.2);
+    const s = document.createElement('canvas');
+    s.width = s.height = 64;
+    const g = s.getContext('2d');
+    const grad = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+    grad.addColorStop(0, rgba(mixc(c, [255, 255, 255], 0.5), 1));
+    grad.addColorStop(0.18, rgba(c, 0.9));
+    grad.addColorStop(0.45, rgba(c, 0.25));
+    grad.addColorStop(1, rgba(c, 0));
+    g.fillStyle = grad;
+    g.fillRect(0, 0, 64, 64);
+    sprites.push(s);
+  }
+}
+const spriteOf = (x) => sprites[Math.round(Math.max(0, Math.min(1, x)) * (SPRITES - 1))];
+
+// --- The test track, as a schedule: the signal below and the sound (PLAY SOUND) both follow it. ---
+const BPM = 120, BEAT = 60 / BPM, BAR = BEAT * 4, LOOP = BAR * 16;
+const BASS_NOTES = [41, 41, 44, 39, 41, 41, 46, 44]; // MIDI, one per 8th of a bar's first half, repeated
+const sectionOf = (t) => (Math.floor((t % LOOP) / BAR) >= 12 ? 'BREAKDOWN' : 'FULL');
+const hasKick = (t) => sectionOf(t) === 'FULL';
+
+// --- The synthetic SIGNAL: 64 bands (0..1) and the scalars the app's shaders get. ---
+const BANDS = 64;
+const target = new Float32Array(BANDS), bands = new Float32Array(BANDS);
+const sig = { level: 0, bass: 0, beat: 0, beatCount: 0, accent: 0, flow: 0 };
+let lastKick = -1, lastAccent = -10;
+const gauss = (x, m, s) => Math.exp(-0.5 * ((x - m) / s) ** 2);
+function stepSignal(t, dt) {
+  const beatT = t % BEAT, eighth = t % (BEAT / 2);
+  const kick = hasKick(t) ? Math.exp(-beatT / 0.12) : 0;
+  const beatIndex = Math.floor((t % BAR) / BEAT);
+  const snare = beatIndex % 2 === 1 ? Math.exp(-beatT / 0.18) : 0;
+  const hat = eighth > BEAT / 4 ? Math.exp(-(eighth - BEAT / 4) / 0.05) : 0;
+  const bassEnv = (hasKick(t) ? 0.55 : 0.2) * (0.6 + 0.4 * Math.exp(-eighth / 0.15));
+  const pad = (sectionOf(t) === 'BREAKDOWN' ? 0.45 : 0.22) * (0.7 + 0.3 * Math.sin(t * 0.7));
+  for (let b = 0; b < BANDS; b++) {
+    const x = b / (BANDS - 1);
+    target[b] = Math.min(1, 0.95 * kick * gauss(x, 0.06, 0.07) + bassEnv * gauss(x, 0.16, 0.06) + 0.7 * snare * (gauss(x, 0.45, 0.12) + 0.4 * gauss(x, 0.8, 0.15)) + 0.6 * hat * gauss(x, 0.88, 0.08) + pad * gauss(x, 0.35, 0.16) + 0.03);
+    // The app's balanced profile: quick up (15 ms), short fall (140 ms).
+    const tau = target[b] > bands[b] ? 0.015 : 0.14;
+    bands[b] += (target[b] - bands[b]) * (1 - Math.exp(-dt / tau));
+  }
+  let level = 0, bass = 0;
+  for (let b = 0; b < BANDS; b++) { level += bands[b]; if (b < 10) bass += bands[b]; }
+  sig.level = level / BANDS;
+  sig.bass = bass / 10;
+  // A beat on each kick; the accent at most 3 a second (the app's strobe limit), on strong ones.
+  const k = Math.floor(t / BEAT);
+  sig.beat *= Math.exp(-dt / 0.15);
+  if (hasKick(t) && k !== lastKick && beatT < 0.12) {
+    lastKick = k;
+    sig.beat = 1;
+    sig.beatCount++;
+    if (t - lastAccent >= 0.34) { sig.accent = 0.8; lastAccent = t; }
+    for (const d of directions) d.onBeat();
+  }
+  sig.accent *= Math.exp(-dt / 0.2);
+  sig.flow += dt * (0.25 + 1.75 * sig.level);
+}
+const bandAt = (x) => bands[Math.round(Math.max(0, Math.min(1, x)) * (BANDS - 1))];
+
+// --- Shared: a seeded random, nodes, nearest-neighbour links, signals. ---
+function rng(seed) { return () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646; }
+function nearestLinks(nodes, dist, k, maxD) {
+  const links = [], seen = new Set();
+  nodes.forEach((n, i) => {
+    const near = nodes.map((m, j) => [j, dist(n, m)]).filter(([j, d]) => j !== i && d < maxD).sort((a, b) => a[1] - b[1]).slice(0, k);
+    for (const [j] of near) {
+      const key = i < j ? i + ':' + j : j + ':' + i;
+      if (!seen.has(key)) { seen.add(key); links.push([Math.min(i, j), Math.max(i, j)]); }
+    }
+  });
+  const adj = nodes.map(() => []);
+  links.forEach(([a, b], li) => { adj[a].push([b, li]); adj[b].push([a, li]); });
+  return { links, adj };
+}
+/** Signals: light running along links, hop to hop, lighting each node it reaches. */
+function makeSignals(adj, speedLinksPerS) {
+  const list = [];
+  return {
+    list,
+    fire(from, hops, rand) {
+      const out = adj[from];
+      if (!out.length) return;
+      const [to, link] = out[Math.floor(rand() * out.length)];
+      list.push({ from, to, link, t: 0, hops, trail: [] });
+    },
+    step(dt, rand, onArrive) {
+      for (let i = list.length - 1; i >= 0; i--) {
+        const s = list[i];
+        s.t += dt * speedLinksPerS;
+        if (s.t >= 1) {
+          onArrive(s.to);
+          list.splice(i, 1);
+          if (s.hops > 1) {
+            const next = adj[s.to].filter(([n]) => n !== s.from);
+            if (next.length) { const [to, link] = next[Math.floor(rand() * next.length)]; list.push({ from: s.to, to, link, t: 0, hops: s.hops - 1, trail: s.trail }); }
+          }
+        }
+      }
+    },
+  };
+}
+
+// --- A canvas that follows its box, at the screen's pixel ratio. ---
+function setup(id) {
+  const canvas = document.getElementById(id);
+  const ctx = canvas.getContext('2d');
+  const view = { canvas, ctx, w: 0, h: 0, visible: true };
+  const fit = () => {
+    const r = canvas.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
+    view.w = r.width; view.h = r.height;
+    canvas.width = Math.round(r.width * dpr); canvas.height = Math.round(r.height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  };
+  new ResizeObserver(() => { fit(); view.onResize?.(); }).observe(canvas);
+  new IntersectionObserver(([e]) => (view.visible = e.isIntersecting)).observe(canvas);
+  fit();
+  return view;
+}
+
+// --- One 3D renderer for every variation: each gives its nodes (model space) and where they are each frame (camera space). ---
+/**
+ * cfg: seed; build(rand) → [{x,y,z,band}]; k, maxD (links: k nearest within maxD);
+ * dist(a, b) (default 3D distance); place(n, t) sets n.cx, n.cy, n.cz (cz = depth, > 0);
+ * fog(n) (0..1, default from depth); skip(A, B) (a link not to draw this frame);
+ * scale(w, h) (px per unit at depth 1); size (node size factor); speed (signal links a second).
+ */
+function depthVariation(id, cfg) {
+  const v = setup(id);
+  let nodes = [], links = [], adj = [], signals, rand;
+  v.onResize = () => {
+    rand = rng(cfg.seed);
+    nodes = cfg.build(rand).map((p) => ({ ...p, swell: 0, sx: 0, sy: 0, s: 1, fog: 1, vis: true, cx: 0, cy: 0, cz: 1 }));
+    const dist = cfg.dist || ((a, b) => Math.hypot(a.x - b.x, a.y - b.y, a.z - b.z));
+    ({ links, adj } = nearestLinks(nodes, dist, cfg.k, cfg.maxD));
+    signals = makeSignals(adj, cfg.speed || 2.2);
+  };
+  v.onResize();
+  let flash = 0;
+  return {
+    onBeat() {
+      // Fire from the three loudest bass nodes in sight, nearest first.
+      const order = nodes.map((n, i) => [i, n.vis && n.band < 0.3 ? bandAt(n.band) + n.fog : -1]).sort((a, b) => b[1] - a[1]).slice(0, 3);
+      for (const [i, score] of order) if (score > 0) { signals.fire(i, 3, rand); nodes[i].swell = 1; }
+      flash = sig.accent;
+    },
+    draw(t, dt) {
+      if (!v.visible) return;
+      const { ctx, w, h } = v;
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.fillStyle = '#000'; ctx.fillRect(0, 0, w, h);
+      ctx.globalCompositeOperation = 'lighter';
+      const scale = cfg.scale(w, h);
+      for (const n of nodes) {
+        cfg.place(n, t);
+        n.vis = n.cz > 0.15;
+        n.s = 1 / Math.max(0.15, n.cz);
+        n.sx = w / 2 + n.cx * scale * n.s; n.sy = h / 2 + n.cy * scale * n.s;
+        n.fog = cfg.fog(n);
+        n.swell *= Math.exp(-dt / 0.25);
+      }
+      signals.step(dt, rand, (i) => (nodes[i].swell = Math.max(nodes[i].swell, 0.8)));
+      flash *= Math.exp(-dt / 0.2);
+      for (const [i, j] of links) {
+        const A = nodes[i], B = nodes[j];
+        if (!A.vis || !B.vis || (cfg.skip && cfg.skip(A, B))) continue;
+        const e = (bandAt(A.band) + bandAt(B.band)) / 2, fog = Math.min(A.fog, B.fog);
+        if (fog < 0.02) continue;
+        ctx.strokeStyle = rgba(freqColor((A.band + B.band) / 2, e), (0.14 + 0.6 * e + 0.5 * flash * fog) * fog);
+        ctx.lineWidth = Math.min(4, (0.5 + 1.4 * e) * (A.s + B.s) / 2 * cfg.line);
+        ctx.beginPath(); ctx.moveTo(A.sx, A.sy); ctx.lineTo(B.sx, B.sy); ctx.stroke();
+      }
+      for (const s of signals.list) {
+        const A = nodes[s.from], B = nodes[s.to];
+        if (!A.vis || !B.vis) continue;
+        const x = A.sx + (B.sx - A.sx) * s.t, y = A.sy + (B.sy - A.sy) * s.t, size = Math.min(60, 22 * (A.s + B.s) / 2 * cfg.size);
+        ctx.globalAlpha = Math.min(A.fog, B.fog); ctx.drawImage(spriteOf(A.band), x - size / 2, y - size / 2, size, size);
+      }
+      for (const n of nodes) {
+        if (!n.vis || n.fog < 0.02) continue;
+        const e = bandAt(n.band), size = Math.min(90, (7 + 20 * e + 22 * n.swell) * n.s * cfg.size);
+        ctx.globalAlpha = (0.3 + 0.7 * Math.min(1, e + n.swell)) * n.fog;
+        ctx.drawImage(spriteOf(n.band), n.sx - size / 2, n.sy - size / 2, size, size);
+      }
+      ctx.globalAlpha = 1;
+    },
+  };
+}
+/** Rotates n's model position by yaw (about y) then pitch (about x); returns [x, y, z]. */
+function turn(n, yaw, pitch) {
+  const cy = Math.cos(yaw), sy = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
+  const x1 = n.x * cy - n.z * sy, z1 = n.x * sy + n.z * cy;
+  return [x1, n.y * cp - z1 * sp, n.y * sp + z1 * cp];
+}
+const clamp01 = (x) => Math.max(0, Math.min(1, x));
+
+// B1 · CLOUD: an ellipsoid, denser toward its middle, turning with the flow.
+const CAM = 3.2;
+const cloud = depthVariation('b1', {
+  seed: 11, k: 3, maxD: 0.7, size: CAM, line: CAM,
+  build: (rand) => Array.from({ length: 180 }, () => {
+    const u = rand() * 2 - 1, th = rand() * 6.28, r = Math.cbrt(rand());
+    return { x: r * Math.sqrt(1 - u * u) * Math.cos(th) * 1.6, y: r * u * 0.8, z: r * Math.sqrt(1 - u * u) * Math.sin(th) * 1.6, band: rand() };
+  }),
+  place: (n) => { const [x, y, z] = turn(n, sig.flow * 0.12, 0.32); n.cx = x; n.cy = y; n.cz = CAM + z; n.z2 = z; },
+  fog: (n) => Math.max(0.1, Math.min(1, 0.6 - n.z2 * 0.45)),
+  scale: (w, h) => Math.min(w, h * 2) * 0.34 * CAM,
+});
+
+// B2 · FLIGHT: an endless box of nodes the camera flies through; depth wraps round.
+const DEEP = 8;
+let camZ = 0;
+const wrapDz = (a, b) => { const d = Math.abs(a - b) % DEEP; return Math.min(d, DEEP - d); };
+const flight = depthVariation('b2', {
+  seed: 31, k: 3, maxD: 0.95, size: 1, line: 1, speed: 2.4,
+  build: (rand) => Array.from({ length: 300 }, () => ({ x: (rand() * 2 - 1) * 2.6, y: (rand() * 2 - 1) * 1.4, z: rand() * DEEP, band: rand() })),
+  dist: (a, b) => Math.hypot(a.x - b.x, a.y - b.y, wrapDz(a.z, b.z)),
+  place: (n, t) => {
+    n.cz = (((n.z - camZ) % DEEP) + DEEP) % DEEP + 0.05;
+    n.cx = n.x + 0.18 * Math.sin(t * 0.17); n.cy = n.y + 0.1 * Math.cos(t * 0.13);
+  },
+  // Fade in from the far dark, and out just before passing the camera (no popping).
+  fog: (n) => clamp01((DEEP - n.cz) / 2.5) * clamp01((n.cz - 0.2) / 0.5),
+  // A link across the wrap would stretch the whole depth: skip it.
+  skip: (A, B) => Math.abs(A.cz - B.cz) > DEEP / 2,
+  scale: (w) => w * 0.22,
+});
+
+// B3 · ORB: a Fibonacci sphere, jittered; it breathes with the bass and kicks out on the beat.
+const orb = depthVariation('b3', {
+  seed: 47, k: 4, maxD: 0.45, size: CAM, line: CAM,
+  build: (rand) => Array.from({ length: 230 }, (_, i, all) => {
+    const y = 1 - (2 * (i + 0.5)) / 230, r = Math.sqrt(1 - y * y), th = i * 2.39996 + rand() * 0.25;
+    const j = 1 + (rand() - 0.5) * 0.08;
+    return { x: Math.cos(th) * r * j, y: y * j, z: Math.sin(th) * r * j, band: rand() };
+  }),
+  place: (n, t) => {
+    const [x, y, z] = turn(n, sig.flow * 0.15, 0.3 + 0.12 * Math.sin(t * 0.1));
+    const R = 1 + 0.1 * sig.bass + 0.1 * sig.beat;
+    n.cx = x * R; n.cy = y * R; n.cz = CAM + z * R; n.z2 = z;
+  },
+  // The far side shows through, dimmed: a glass globe.
+  fog: (n) => 0.22 + 0.78 * clamp01(0.55 - n.z2 * 0.6),
+  scale: (w, h) => Math.min(w, h * 2) * 0.19 * CAM,
+});
+
+// B4 · GALAXY: three spiral arms in a tilted disc, thick at the core.
+const galaxy = depthVariation('b4', {
+  seed: 59, k: 4, maxD: 0.5, size: CAM, line: CAM,
+  build: (rand) => Array.from({ length: 380 }, () => {
+    // Weighted toward the core (a power above 1/2), arms wider near it.
+    const arm = Math.floor(rand() * 3), r = 0.05 + Math.pow(rand(), 0.85) * 1.6;
+    const th = (arm * 6.283) / 3 + r * 2.3 + (rand() - 0.5) * (0.9 - r * 0.25);
+    const thick = 0.1 * (1.25 - r / 2) * (rand() * 2 - 1);
+    return { x: Math.cos(th) * r, y: thick, z: Math.sin(th) * r, band: rand() };
+  }),
+  place: (n) => { const [x, y, z] = turn(n, sig.flow * 0.18, 1.05); n.cx = x; n.cy = y * 1.0; n.cz = CAM + 0.6 + z; n.z2 = z; },
+  fog: (n) => Math.max(0.15, Math.min(1, 0.7 - n.z2 * 0.35)),
+  scale: (w, h) => Math.min(w * 0.75, h * 2.2) * 0.31 * CAM,
+});
+
+// --- Sound (PLAY SOUND): the same track, scheduled on the audio clock, which then drives the visuals too. ---
+let audio = null, audioStart = 0, nextStep = 0;
+function playStep(ctx, at, step) {
+  const t = step * (BEAT / 4);
+  const out = ctx.destination;
+  const env = (node, peak, decay) => { const g = ctx.createGain(); g.gain.setValueAtTime(peak, at); g.gain.exponentialRampToValueAtTime(0.0008, at + decay); node.connect(g).connect(out); return g; };
+  const noise = () => { const b = ctx.createBuffer(1, ctx.sampleRate * 0.3, ctx.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; const s = ctx.createBufferSource(); s.buffer = b; return s; };
+  if (step % 4 === 0 && hasKick(t)) { const o = ctx.createOscillator(); o.frequency.setValueAtTime(130, at); o.frequency.exponentialRampToValueAtTime(45, at + 0.18); env(o, 0.9, 0.3); o.start(at); o.stop(at + 0.32); }
+  if (step % 8 === 4) { const n = noise(), f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 1800; n.connect(f); env(f, 0.35, 0.2); n.start(at); n.stop(at + 0.25); }
+  if (step % 4 === 2) { const n = noise(), f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 8000; n.connect(f); env(f, 0.12, 0.05); n.start(at); n.stop(at + 0.08); }
+  if (step % 2 === 0) {
+    const note = BASS_NOTES[(step / 2) % BASS_NOTES.length], o = ctx.createOscillator(), f = ctx.createBiquadFilter();
+    o.type = 'sawtooth'; o.frequency.value = 440 * 2 ** ((note - 69) / 12); f.type = 'lowpass'; f.frequency.value = 420; o.connect(f);
+    env(f, hasKick(t) ? 0.22 : 0.08, 0.22); o.start(at); o.stop(at + 0.25);
+  }
+}
+function schedule() {
+  if (!audio) return;
+  while (audioStart + nextStep * (BEAT / 4) < audio.currentTime + 0.3) { playStep(audio, audioStart + nextStep * (BEAT / 4), nextStep); nextStep++; }
+}
+document.getElementById('sound').addEventListener('click', async (e) => {
+  const btn = e.currentTarget;
+  try {
+    // One timeline: the track's time carries on unbroken when the audio clock takes over (and when it hands back).
+    const now = clock();
+    if (!audio) {
+      audio = new AudioContext();
+      audioStart = audio.currentTime - now;
+      nextStep = Math.ceil((now + 0.1) / (BEAT / 4));
+      btn.setAttribute('aria-pressed', 'true'); btn.textContent = 'STOP SOUND';
+    } else {
+      await audio.close(); audio = null;
+      base = now - performance.now() / 1000;
+      btn.setAttribute('aria-pressed', 'false'); btn.textContent = 'PLAY SOUND';
+    }
+  } catch { btn.textContent = 'SOUND BLOCKED'; }
+});
+
+// --- The palette picker. ---
+const sw = document.getElementById('swatches');
+PALETTES.forEach(([name, a, c, b], i) => {
+  const btn = document.createElement('button');
+  btn.type = 'button'; btn.className = 'swatch'; btn.setAttribute('aria-pressed', String(i === 0));
+  btn.innerHTML = `<span class="chip" style="background:linear-gradient(90deg, ${a} 0 50%, ${c} 50%)"></span>${name}`;
+  btn.addEventListener('click', () => {
+    pal = { accent: hex(a), cool: hex(c), bright: hex(b) };
+    buildSprites();
+    sw.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === btn)));
+  });
+  sw.appendChild(btn);
+});
+
+// --- The clock and the frame loop: one track time for all three (the audio clock while sound plays, heard time: less the output latency). ---
+let base = 0;
+const clock = () => (audio ? audio.currentTime - audioStart - (audio.outputLatency || 0) : performance.now() / 1000 + base);
+buildSprites();
+const directions = [cloud, flight, orb, galaxy];
+let last = clock();
+const sectionEl = document.getElementById('section');
+let shownBar = -1;
+function frame() {
+  schedule();
+  const t = Math.max(0, clock()), dt = Math.min(0.1, Math.max(0, t - last));
+  last = t;
+  stepSignal(t, dt);
+  camZ += dt * (0.35 + 1.4 * sig.level);
+  for (const d of directions) d.draw(t, dt);
+  const bar = Math.floor((t % LOOP) / BAR);
+  if (bar !== shownBar) { shownBar = bar; sectionEl.textContent = `BAR ${bar + 1} OF 16 · ${sectionOf(t)}`; }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

@@ -50,7 +50,7 @@ const browser = await chromium.launch({
   headless: !HEADED,
   args: ['--auto-select-tab-capture-source-by-title=CB-TEST', '--autoplay-policy=no-user-gesture-required', '--enable-unsafe-swiftshader'],
 });
-const context = await browser.newContext({ viewport: { width: 1600, height: 900 } });
+const context = await browser.newContext({ viewport: { width: 1600, height: 900 }, acceptDownloads: true, permissions: ['clipboard-read', 'clipboard-write'] });
 // The test tab: a kick at 120 BPM over a quiet tone, made in the page.
 await context.route(TONE, (route) =>
   route.fulfill({
@@ -231,6 +231,65 @@ try {
     if (await page.locator('.topbar').count()) throw new Error('the HUD came back after a reload');
     await page.keyboard.press('h');
     await page.locator('.topbar').waitFor();
+  });
+
+  await path('SETTINGS: palette, glow, steppers, kept across a reload, reset, export / import, diagnostics, axe', async () => {
+    // axe again: the H path reloaded the page.
+    await page.addScriptTag({ content: readFileSync(join(root, 'node_modules/axe-core/axe.min.js'), 'utf8') });
+    await page.getByRole('button', { name: 'SETTINGS' }).click();
+    const panel = page.getByRole('dialog', { name: 'SETTINGS' });
+    await panel.waitFor();
+    // A palette recolours the picture and the bar.
+    const before = await stage('pixels');
+    await panel.getByRole('button', { name: 'LASER' }).click();
+    await page.waitForTimeout(400);
+    if ((await page.evaluate(() => document.documentElement.dataset.palette)) !== 'laser') throw new Error('the bar kept its palette');
+    const after = await stage('pixels');
+    if (after.sig === before.sig) throw new Error('the picture didn’t change');
+    await panel.getByRole('button', { name: 'MAX' }).click();
+    await panel.getByRole('button', { name: 'SENSITIVITY: more' }).click();
+    await panel.getByRole('button', { name: 'ZOOM: less' }).click();
+    await panel.getByRole('button', { name: 'TRAILS: less' }).click();
+    await page.screenshot({ path: join(shots, '05-settings.png') });
+    const r = await page.evaluate(() => window.axe.run(document, { runOnly: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] }));
+    if (r.violations.length) throw new Error(`axe, settings open: ${r.violations.map((v) => `${v.id}: ${v.nodes.length}`).join(', ')}`);
+    const want = { palette: 'laser', glow: 'max', sensitivity: 1.25, trails: 0.25, zoom: 0.9 };
+    const got = await page.evaluate(() => window.__cymatic.settings().scenes.test);
+    if (JSON.stringify(got) !== JSON.stringify(want)) throw new Error(`settings: ${JSON.stringify(got)}`);
+    // Kept across a reload.
+    await page.evaluate(() => window.__cymatic.flush());
+    await page.reload();
+    await page.waitForSelector('#scene-canvas[data-ready]');
+    await page.waitForTimeout(300);
+    if (JSON.stringify(await page.evaluate(() => window.__cymatic.settings().scenes.test)) !== JSON.stringify(want)) throw new Error('lost on reload');
+    if ((await page.evaluate(() => document.documentElement.dataset.palette)) !== 'laser') throw new Error('palette lost on reload');
+    // EXPORT, RESET, then IMPORT the file back.
+    await page.getByRole('button', { name: 'SETTINGS' }).click();
+    await panel.getByText('BACKUP').click();
+    const [download] = await Promise.all([page.waitForEvent('download'), panel.getByRole('button', { name: 'EXPORT' }).click()]);
+    const saved = join(shots, 'exported-settings.json');
+    await download.saveAs(saved);
+    if (!/^cymatic-bridge-settings-\d{4}-\d{2}-\d{2}\.json$/.test(download.suggestedFilename())) throw new Error(`file name ${download.suggestedFilename()}`);
+    await panel.getByRole('button', { name: 'RESET SCENE' }).click();
+    if (await page.evaluate(() => window.__cymatic.settings().scenes.test)) throw new Error('RESET kept the scene’s settings');
+    await panel.locator('input[type=file]').setInputFiles(saved);
+    await page.getByRole('status').filter({ hasText: 'SETTINGS IMPORTED' }).waitFor();
+    if (JSON.stringify(await page.evaluate(() => window.__cymatic.settings().scenes.test)) !== JSON.stringify(want)) throw new Error('import didn’t restore');
+    // A file that isn't ours is refused.
+    await panel.locator('input[type=file]').setInputFiles({ name: 'x.json', mimeType: 'application/json', buffer: Buffer.from('{"app":"other"}') });
+    await page.getByRole('status').filter({ hasText: 'COULDN’T IMPORT' }).waitFor();
+    // COPY DIAGNOSTICS.
+    await panel.getByText('DIAGNOSTICS', { exact: true }).click();
+    await panel.getByRole('button', { name: 'COPY DIAGNOSTICS' }).click();
+    await page.getByRole('status').filter({ hasText: 'DIAGNOSTICS COPIED' }).waitFor();
+    const clip = await page.evaluate(() => navigator.clipboard.readText());
+    if (!/^cymatic_bridge \d+\.\d+\.\d+ \(build \d+\)/.test(clip) || !/fps/.test(clip)) throw new Error(`clipboard: ${clip.slice(0, 80)}`);
+    // Esc closes; back to the default look for the paths after.
+    await page.keyboard.press('Escape');
+    await panel.waitFor({ state: 'detached' });
+    await page.getByRole('button', { name: 'SETTINGS' }).click();
+    await panel.getByRole('button', { name: 'RESET SCENE' }).click();
+    await page.keyboard.press('Escape');
   });
 
   await path('← / →: step scenes without errors', async () => {

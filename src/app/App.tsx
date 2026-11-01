@@ -9,7 +9,7 @@
  *
  * What shows: the top bar, unless the HUD is hidden (H) or the page is
  * fullscreen (F: only the visual, R12), and under it the title bridge's
- * panel when open. The meter (D) and a notice show
+ * or SETTINGS panel when open. The meter (D) and a notice show
  * either way. With the HUD out of sight the pointer hides when still.
  */
 import { useEffect } from 'react';
@@ -23,6 +23,7 @@ import { showScene } from '@/scene/host';
 import { useSettings } from '@/store/instance';
 
 import { BridgePanel } from './BridgePanel';
+import { SettingsPanel } from './SettingsPanel';
 import { useFullscreenSync, useIdleCursor } from './fullscreen';
 import { Meter } from './Meter';
 import { TopBar } from './TopBar';
@@ -56,6 +57,7 @@ export function App() {
     <>
       {hudShown ? <TopBar /> : null}
       {hudShown && panel === 'bridge' ? <BridgePanel /> : null}
+      {hudShown && panel === 'settings' ? <SettingsPanel /> : null}
       {notice ? (
         <p className={`notice${hudShown ? '' : ' notice-top'}`} role="status">
           {notice}

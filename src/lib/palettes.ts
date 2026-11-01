@@ -9,9 +9,11 @@
  * frequency onto the pair (bass toward the accent, treble toward the cool
  * hue) and flash the bright text colour on beat accents (R22).
  *
- * 0.1.0 has one provisional palette, UV, to build SIGNAL with. Phase S3
- * makes the first four (proposed, the user picks) and adds the per-scene
- * PALETTE setting.
+ * S3 (0.3.0) audition: eight candidates, UV (0.1.0's, hand-made) and seven
+ * derived from their neon pair by a script (each role a fixed mix of the
+ * accent over black, text colours lifted toward white until they pass the
+ * contrast rule). The user tries them on the music and keeps four; the rest
+ * are removed before the release.
  *
  * The design system's rule holds for every palette: every text colour
  * (dim, text, accent, bright) passes WCAG AA (4.5:1) on every background
@@ -43,7 +45,7 @@ export interface PaletteColors {
 }
 
 /** The palettes' ids. Stored in settings: never change one once released. */
-export type PaletteId = 'uv';
+export type PaletteId = 'uv' | 'laser' | 'acid' | 'solar' | 'aurora' | 'toxic' | 'frost' | 'flare';
 
 /** A palette: its id, its name, its colours. */
 export interface Palette {
@@ -71,6 +73,139 @@ export const PALETTES: readonly Palette[] = [
       accentDeep: '#6a2aa8',
       textBright: '#ecd6ff',
       cool: '#20e0c0',
+    },
+  },
+  {
+    // laser red over ice cyan.
+    id: 'laser',
+    label: 'LASER',
+    colors: {
+      bg: '#000000',
+      surface: '#090203',
+      surfaceRaised: '#110305',
+      line: '#33090f',
+      lineLit: '#59101b',
+      wash: '#29070c',
+      textDim: '#d34b5f',
+      text: '#ee576e',
+      accent: '#ff2e4d',
+      accentDeep: '#8c192a',
+      textBright: '#ffcbd2',
+      cool: '#5fe3ff',
+    },
+  },
+  {
+    // acid green over ultraviolet.
+    id: 'acid',
+    label: 'ACID',
+    colors: {
+      bg: '#000000',
+      surface: '#060902',
+      surfaceRaised: '#0c1103',
+      line: '#253309',
+      lineLit: '#405910',
+      wash: '#1d2907',
+      textDim: '#a4d34b',
+      text: '#b3ec45',
+      accent: '#b8ff2e',
+      accentDeep: '#658c19',
+      textBright: '#edffcb',
+      cool: '#8a5cff',
+    },
+  },
+  {
+    // solar orange over deep blue.
+    id: 'solar',
+    label: 'SOLAR',
+    colors: {
+      bg: '#000000',
+      surface: '#090501',
+      surfaceRaised: '#110902',
+      line: '#331c06',
+      lineLit: '#59300b',
+      wash: '#291605',
+      textDim: '#d38641',
+      text: '#ec8e39',
+      accent: '#ff8a1f',
+      accentDeep: '#8c4c11',
+      textBright: '#ffe2c7',
+      cool: '#3a6dff',
+    },
+  },
+  {
+    // aurora mint over magenta.
+    id: 'aurora',
+    label: 'AURORA',
+    colors: {
+      bg: '#000000',
+      surface: '#020906',
+      surfaceRaised: '#04110b',
+      line: '#0c3323',
+      lineLit: '#15593e',
+      wash: '#0a291c',
+      textDim: '#54d39f',
+      text: '#51ecad',
+      accent: '#3dffb0',
+      accentDeep: '#228c61',
+      textBright: '#ceffeb',
+      cool: '#ff4fd8',
+    },
+  },
+  {
+    // toxic yellow over violet.
+    id: 'toxic',
+    label: 'TOXIC',
+    colors: {
+      bg: '#000000',
+      surface: '#090802',
+      surfaceRaised: '#110f03',
+      line: '#332d09',
+      lineLit: '#594f10',
+      wash: '#292407',
+      textDim: '#d3c04b',
+      text: '#ecd645',
+      accent: '#ffe32e',
+      accentDeep: '#8c7d19',
+      textBright: '#fff8cb',
+      cool: '#a04dff',
+    },
+  },
+  {
+    // frost white-blue over indigo.
+    id: 'frost',
+    label: 'FROST',
+    colors: {
+      bg: '#000000',
+      surface: '#060809',
+      surfaceRaised: '#0a0e11',
+      line: '#202b33',
+      lineLit: '#384c59',
+      wash: '#192329',
+      textDim: '#94b9d3',
+      text: '#9fcdec',
+      accent: '#9fd8ff',
+      accentDeep: '#57778c',
+      textBright: '#e7f5ff',
+      cool: '#5b5bff',
+    },
+  },
+  {
+    // hot pink over electric cyan.
+    id: 'flare',
+    label: 'FLARE',
+    colors: {
+      bg: '#000000',
+      surface: '#090306',
+      surfaceRaised: '#11050c',
+      line: '#331024',
+      lineLit: '#591c3f',
+      wash: '#290d1d',
+      textDim: '#d360a1',
+      text: '#ec5faf',
+      accent: '#ff4fb3',
+      accentDeep: '#8c2b62',
+      textBright: '#ffd3ec',
+      cool: '#2ee6ff',
     },
   },
 ];

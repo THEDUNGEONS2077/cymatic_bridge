@@ -8,8 +8,8 @@
  */
 import { createStore, type StoreApi } from 'zustand/vanilla';
 
-import { stepScene } from '@/lib/scenes';
-import type { Settings } from '@/lib/settings';
+import { type SceneSettings, stepScene } from '@/lib/scenes';
+import { normalizeSceneSettings, sceneSettings, type Settings } from '@/lib/settings';
 
 import { KEYS, type KV } from './kv';
 
@@ -27,6 +27,15 @@ export interface SettingsState {
   setHudHidden(hidden: boolean): void;
   /** Turns the title bridge's offer on or off. */
   setBridgeOffer(on: boolean): void;
+  /** Changes part of scene `id`'s own settings (checked, as stored ones are). */
+  setSceneSetting(id: string, patch: Partial<SceneSettings>): void;
+  /** Gives scene `id` its defaults back. */
+  resetScene(id: string): void;
+  /**
+   * Replaces every setting (IMPORT). The settings before it are kept under
+   * KEYS.beforeImport first, so an import never loses what was there.
+   */
+  replaceSettings(next: Settings): Promise<void>;
   /** Writes a pending save now (leaving the page). */
   flush(): Promise<void>;
 }
@@ -58,6 +67,23 @@ export function createSettingsStore(kv: KV, initial: Settings, onError: (e: unkn
     setScene: (id) => change((s) => ({ ...s, scene: id })),
     setHudHidden: (hidden) => change((s) => ({ ...s, hudHidden: hidden })),
     setBridgeOffer: (on) => change((s) => ({ ...s, bridgeOffer: on })),
+    setSceneSetting: (id, patch) =>
+      change((s) => ({ ...s, scenes: { ...s.scenes, [id]: normalizeSceneSettings(id, { ...sceneSettings(s, id), ...patch }) } })),
+    resetScene: (id) =>
+      change((s) => {
+        const scenes = { ...s.scenes };
+        delete scenes[id];
+        return { ...s, scenes };
+      }),
+    replaceSettings: async (next) => {
+      try {
+        await kv.set(KEYS.beforeImport, store.getState().settings);
+      } catch (e) {
+        onError(e);
+      }
+      change(() => next);
+      await write();
+    },
     flush: write,
   }));
   return store;

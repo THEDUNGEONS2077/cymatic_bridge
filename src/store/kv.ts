@@ -20,6 +20,8 @@ export interface KV {
 export const KEYS = {
   /** The settings document (lib/settings.ts). */
   settings: 'settings.v1',
+  /** The settings as they were before the last IMPORT (a safety copy; not shown anywhere). */
+  beforeImport: 'settings.before-import',
   /** Unreadable data is kept under `corrupt.<epoch ms>` instead of being thrown away. */
   corruptPrefix: 'corrupt.',
 } as const;

@@ -30,9 +30,9 @@ export interface LiveState {
   meter: boolean;
   /** A short notice under the HUD (null: none). */
   notice: string | null;
-  /** The panel open under the bar (the title bridge's install steps), or null. */
-  panel: 'bridge' | null;
-  setPanel(p: 'bridge' | null): void;
+  /** The panel open under the bar (the title bridge's steps, or SETTINGS), or null. */
+  panel: Panel;
+  setPanel(p: Panel): void;
   setCapture(c: CaptureState): void;
   /** The shared tab's label changed (or the share ended: both null). */
   setLabel(title: string | null, bridge: BridgeState): void;
@@ -41,6 +41,9 @@ export interface LiveState {
   /** Shows `text` for NOTICE_MS (a newer notice replaces it). */
   showNotice(text: string): void;
 }
+
+/** The panels under the bar. */
+export type Panel = 'bridge' | 'settings' | null;
 
 /** How long a notice shows (ms). */
 export const NOTICE_MS = 6000;

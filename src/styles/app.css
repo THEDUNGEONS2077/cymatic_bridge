@@ -256,3 +256,135 @@ html[data-idle] * {
   gap: var(--s-sm);
   flex-wrap: wrap;
 }
+
+/* SETTINGS: a drop-down at the bar's right end (R13). */
+.panel-right {
+  left: auto;
+  right: var(--s-md);
+  translate: none;
+  width: min(400px, calc(100vw - 32px));
+  max-height: calc(100vh - 60px);
+  overflow-y: auto;
+}
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--s-sm);
+}
+.panel-head .panel-title {
+  margin: 0;
+}
+
+/* Folds (native <details>, cyberdeck SYSTEM's look): a ruled summary with a caret. */
+.fold {
+  border-top: var(--hairline) solid var(--line);
+  padding: var(--s-sm) 0;
+}
+.fold > summary {
+  cursor: pointer;
+  list-style: none;
+  color: var(--text-bright);
+  letter-spacing: 0.08em;
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+}
+.fold > summary::-webkit-details-marker {
+  display: none;
+}
+.fold > summary::before {
+  content: '▸';
+  margin-right: var(--s-sm);
+  color: var(--accent);
+  transition: rotate var(--fast) var(--ease);
+}
+.fold[open] > summary::before {
+  rotate: 90deg;
+}
+.fold > summary:focus-visible {
+  outline: var(--hairline) solid var(--text-bright);
+  outline-offset: 2px;
+}
+.fold > :not(summary) {
+  margin-top: var(--s-sm);
+}
+
+/* One setting: its label left, its control right. */
+.setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s-md);
+  margin: var(--s-sm) 0;
+}
+.setting-wide {
+  flex-direction: column;
+  align-items: stretch;
+}
+.setting-label {
+  color: var(--text);
+  letter-spacing: 0.06em;
+}
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: var(--s-xs);
+}
+.stepper-value {
+  min-width: 48px;
+  text-align: center;
+  color: var(--text-bright);
+}
+.choice {
+  display: flex;
+  gap: var(--s-xs);
+}
+.btn[aria-pressed='true'] {
+  color: var(--text-bright);
+  border-color: var(--accent);
+  background: var(--xp-wash);
+}
+
+/* Palette swatches: each previews its own pair. */
+.swatches {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--s-xs);
+}
+.swatch {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--s-xs);
+  padding: var(--s-xs);
+  font: inherit;
+  font-size: var(--fs-micro);
+  color: var(--text);
+  background: var(--bg);
+  border: var(--hairline) solid var(--line);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+.swatch:hover,
+.swatch:focus-visible {
+  border-color: var(--accent);
+  color: var(--text-bright);
+}
+.swatch:focus-visible {
+  outline: var(--hairline) solid var(--text-bright);
+  outline-offset: 1px;
+}
+.swatch[aria-pressed='true'] {
+  border-color: var(--text-bright);
+  color: var(--text-bright);
+  box-shadow: var(--glow);
+}
+.swatch-colors {
+  display: block;
+  height: 12px;
+  border-radius: 1px;
+}
+.swatch-label {
+  letter-spacing: 0.06em;
+}

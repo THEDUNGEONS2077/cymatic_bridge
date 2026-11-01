@@ -6,7 +6,7 @@
  * While listening to a tab without the bridge, the middle offers GET TITLE
  * BRIDGE (unless the user said DON'T OFFER AGAIN); with an old bridge,
  * UPDATE TITLE BRIDGE, beside the title. Either opens BridgePanel. Right:
- * the scene, with ‹ › to step through them.
+ * the scene, with ‹ › to step through them, and SETTINGS (SettingsPanel).
  * SETTINGS joins on the right in S3. Every control is a real button with a
  * name a screen reader reads, at least 24 px tall (cyberdeck's axe rules).
  */
@@ -27,6 +27,7 @@ export function TopBar() {
   const scene = useSettings((s) => s.settings.scene);
   const stepScene = useSettings((s) => s.stepScene);
   const name = findScene(scene).name;
+  const panel = useLive((s) => s.panel);
 
   return (
     <header className="topbar" role="banner">
@@ -71,6 +72,9 @@ export function TopBar() {
         </span>
         <button type="button" className="btn btn-icon" onClick={() => stepScene(1)} aria-label="Next scene" title="Next scene (→)">
           ›
+        </button>
+        <button type="button" className="btn" aria-expanded={panel === 'settings'} onClick={() => liveStore.getState().setPanel(panel === 'settings' ? null : 'settings')}>
+          SETTINGS
         </button>
       </div>
     </header>

@@ -33,8 +33,9 @@ export interface SceneFrame {
   w: number;
   h: number;
   dpr: number;
-  /** The scene's ZOOM (1 = as designed; also uZoom), for scenes that scale on the CPU side. */
+  /** The scene's ZOOM and SENSITIVITY (also uZoom, uSensitivity), for scenes that work on the CPU side. */
   zoom: number;
+  sensitivity: number;
   /** Real time (s) and this frame's step (s). */
   time: number;
   dt: number;

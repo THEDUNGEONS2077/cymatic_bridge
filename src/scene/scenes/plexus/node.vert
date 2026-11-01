@@ -13,19 +13,20 @@ flat out vec3 vColor;
 flat out float vAlpha;
 
 // The largest a disc gets (CSS px), however near.
-const float MAX_SIZE = 90.0;
+const float MAX_SIZE = 110.0;
 
 void main() {
   vec2 q = vec2[6](vec2(-1.0, -1.0), vec2(1.0, -1.0), vec2(1.0, 1.0), vec2(-1.0, -1.0), vec2(1.0, 1.0), vec2(-1.0, 1.0))[gl_VertexID];
   vec3 c = toCamera(aNode.xyz);
   float fog = fogOf(c.z);
   float e = band(aNode.w);
-  vAlpha = (0.3 + 0.7 * min(1.0, e + aSwell)) * fog;
+  vAlpha = (0.32 + 0.68 * min(1.0, e + aSwell)) * fog;
   if (vAlpha < 0.003 || c.z < 0.15) {
     gl_Position = HIDDEN;
     return;
   }
-  float size = min(MAX_SIZE, (7.0 + 20.0 * e + 22.0 * aSwell) / c.z * (0.8 + 0.4 * uGlow)) * uDpr;
+  // A wide range (0.4.0: "way more reactive"): small when quiet, big when loud or swelling.
+  float size = min(MAX_SIZE, (5.0 + 34.0 * e + 28.0 * aSwell) / c.z * (0.8 + 0.4 * uGlow)) * uDpr;
   vUv = q;
   vColor = freqColor(aNode.w, e);
   gl_Position = clipOf(project(c) + q * 0.5 * size);

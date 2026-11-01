@@ -13,9 +13,9 @@ Lessons from cymatic_bridge, written so other projects can reuse them. cyberdeck
 
 **1.5 Ending a share ends the tracks.** Chrome's Stop sharing and closing the shared tab both fire `ended` on the audio and video tracks: listen on both.
 
-**1.7 Make the AudioContext inside the click, before awaiting the picker.** Made after `await getDisplayMedia`, it can start suspended, and every analyser frame is then silence. The first share was silent in tests until the context moved into the click (0.1.1).
+**1.6 Make the AudioContext inside the click, before awaiting the picker.** Made after `await getDisplayMedia`, it can start suspended, and every analyser frame is then silence. The first share was silent in tests until the context moved into the click (0.1.1).
 
-**1.6 A share without "Share tab audio" has no audio track.** Check for one, stop the stream at once (Chrome's sharing bar goes), and say plainly what to tick.
+**1.7 A share without "Share tab audio" has no audio track.** Check for one, stop the stream at once (Chrome's sharing bar goes), and say plainly what to tick.
 
 ## 2. Testing tab capture in Chromium
 **2.1 `--auto-select-tab-capture-source-by-title=<title>` answers the picker,** but only for a tab that existed before the page that asks. A tab opened after it was never picked, and the picker stayed open (2026-10-31). Open the test tabs first.
@@ -24,9 +24,9 @@ Lessons from cymatic_bridge, written so other projects can reuse them. cyberdeck
 
 **2.3 Two tabs with the same title: the picker may take either.** Order the paths so it doesn't matter (stop the share before closing tabs, then close all of them).
 
-**2.5 On WSLg, covered windows run at about 1 fps.** Headed test windows are drawn on the Windows desktop; with another window in front of them, `requestAnimationFrame` runs at about 1 Hz, whatever Chrome's anti-throttling flags say. Timing tests need them uncovered.
+**2.4 On WSLg, covered windows run at about 1 fps.** Headed test windows are drawn on the Windows desktop; with another window in front of them, `requestAnimationFrame` runs at about 1 Hz, whatever Chrome's anti-throttling flags say. Timing tests need them uncovered.
 
-**2.4 Background tabs' timers run about once a second.** A WebAudio test signal scheduled half a second ahead plays with gaps from a background tab: queue it seconds ahead (`ctx.currentTime + 3`).
+**2.5 Background tabs' timers run about once a second.** A WebAudio test signal scheduled half a second ahead plays with gaps from a background tab: queue it seconds ahead (`ctx.currentTime + 3`).
 
 ## 3. Audio features for visuals
 **3.1 One gain for the whole spectrum, plus a tilt.** Per-band auto-gain makes every band look loud, so hiss reads like a kick. One peak follower (up at once, down 2.5 dB/s, with a floor so silence stays dark) keeps the music's shape. A +3.5 dB/octave tilt above 1 kHz levels music's natural fall, so the range weighs evenly. *Where:* `lib/signal/dynamics.ts`, `bands.ts`.

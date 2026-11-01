@@ -10,7 +10,7 @@
 //   - the next song (the title changing in place) shows at once;
 //   - the bar doesn't offer the bridge (it's there).
 import { spawn } from 'node:child_process';
-import { mkdirSync, mkdtempSync, rmSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -21,11 +21,20 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const shots = join(root, 'e2e/screenshots');
 mkdirSync(shots, { recursive: true });
 const PORT = 8175;
-const PAGE = `http://127.0.0.1:${PORT}/`;
+// CYMATIC_BASE=/cymatic_bridge/ tests a build made for GitHub Pages at its sub-path (build it with the same variable).
+const BASE = process.env.CYMATIC_BASE ?? '/';
+const PAGE = `http://127.0.0.1:${PORT}${BASE}`;
 const YT = 'https://www.youtube.com/watch?v=cymatic-test';
 const YT_TITLE = '(2) Night Drive Mix 2026 - YouTube';
 
-const server = spawn(join(root, 'node_modules/.bin/serve'), [join(root, 'dist'), '-l', `tcp://127.0.0.1:${PORT}`, '--no-port-switching'], { cwd: root, stdio: 'ignore' });
+let serveDir = join(root, 'dist');
+let tempRoot = null;
+if (BASE !== '/') {
+  tempRoot = mkdtempSync(join(tmpdir(), 'cymatic-bridge-site-'));
+  cpSync(serveDir, join(tempRoot, BASE), { recursive: true });
+  serveDir = tempRoot;
+}
+const server = spawn(join(root, 'node_modules/.bin/serve'), [serveDir, '-l', `tcp://127.0.0.1:${PORT}`, '--no-port-switching'], { cwd: root, stdio: 'ignore' });
 for (let i = 0; i < 50; i++) {
   try {
     await fetch(PAGE);
@@ -103,6 +112,7 @@ try {
   await context.close();
   server.kill();
   rmSync(profile, { recursive: true, force: true });
+  if (tempRoot) rmSync(tempRoot, { recursive: true, force: true });
 }
 
 console.log(failed ? `\n${failed} path(s) failed` : '\nall paths passed');

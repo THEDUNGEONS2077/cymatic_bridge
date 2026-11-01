@@ -1,5 +1,7 @@
 # cymatic_bridge
 
+**Live:** https://thedungeons2077.github.io/cymatic_bridge/ (Chrome)
+
 A music visualizer for the YouTube tab you share. Open the page, press **LISTEN**, pick the tab playing YouTube (or YouTube Music) in Chrome's picker, and keep **"Also share tab audio"** on. The visuals react to that tab's sound. Nothing leaves your browser.
 
 ## Chrome's sharing bar

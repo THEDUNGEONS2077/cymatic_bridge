@@ -35,6 +35,8 @@ npm run check                # typecheck + lint + Vitest (must pass before every
 npm run build && npm run e2e # the browser walk; screenshots in e2e/screenshots/
 CB_HEADLESS=1 npm run e2e    # the walk headless (the sound checks are skipped: headless capture is silent)
 npm run build && npm run e2e:bridge  # the real title bridge against a fake YouTube page (headless)
+CYMATIC_BASE=/cymatic_bridge/ npm run build && CYMATIC_BASE=/cymatic_bridge/ npm run e2e   # the Pages build at its sub-path
+npm run deploy               # all of the above (headless), then publish to GitHub Pages (ask first)
 ```
 The walk runs **headed** when there's a display (WSLg's), because headless Chrome captures a tab's sound as silence. A Chromium window shows for about a minute. Covered by another window on the Windows desktop, it runs at about 1 fps and the sound paths fail: then run it with `CB_HEADLESS=1`, and leave the sound to the user's own check.
 
@@ -42,4 +44,6 @@ The walk runs **headed** when there's a display (WSLg's), because headless Chrom
 1. Bump `version` in `package.json`.
 2. Add a `## x.y.z (build N)` section at the top of `CHANGELOG.md`, with N one more than before.
 3. Commit.
-4. Push, deploy, tag: each only with the user's OK.
+4. Push, deploy (`npm run deploy`, which also checks and walks everything), tag: each only with the user's OK. After a deploy, confirm the live site serves the new build.
+
+The repo is public: github.com/THEDUNGEONS2077/cymatic_bridge (HTTPS remote). The site is https://thedungeons2077.github.io/cymatic_bridge/, served from the `gh-pages` branch (a fresh one-commit branch per deploy).

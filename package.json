@@ -12,7 +12,8 @@
     "test": "vitest run",
     "check": "npm run typecheck && npm run lint && npm test",
     "e2e": "node e2e/walk.mjs",
-    "e2e:bridge": "node e2e/bridge.mjs"
+    "e2e:bridge": "node e2e/bridge.mjs",
+    "deploy": "scripts/deploy.sh"
   },
   "dependencies": {
     "idb-keyval": "^6.3.0",

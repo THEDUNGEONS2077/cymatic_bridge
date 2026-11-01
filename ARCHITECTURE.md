@@ -256,6 +256,16 @@ The user, on S1: "it doesn't really feel on time". The visuals lagged the sound.
 - **GPU time isn't measured** (Chrome hides the timer query); the meter's fps and draw p95 are the guide.
 - **Mono tabs:** both analysers hear the one channel, so balance stays centred.
 
+## 11b. Build and deploy
+- `npm run deploy` (`scripts/deploy.sh`, cyberdeck's, adapted) refuses uncommitted changes, then runs:
+  1. `npm run check`;
+  2. a root build and the walk;
+  3. a build for `/cymatic_bridge/` (`CYMATIC_BASE`), walked at that path (served from a temporary root, as Pages serves it), plus the real title bridge at that path.
+
+  The walks run headless with music made in the page.
+- If all pass, the build goes out as a fresh one-commit `gh-pages` branch (with `.nojekyll`), and Pages is switched on for it the first time.
+- The site: https://thedungeons2077.github.io/cymatic_bridge/. The service worker caches only this app's files, under its own prefix (cyberdeck_terminal and quest_log_desktop share the origin).
+
 ## 12. The title bridge
 A webpage can't read another tab's title, so the shared tab names itself.
 - **The extension** (`bridge/`, MV3, version 1.0.0) is one content script (`title.js`) on `https://www.youtube.com/*` and `https://music.youtube.com/*`, with no permissions. It sets Chrome's **capture handle**:

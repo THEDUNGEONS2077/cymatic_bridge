@@ -24,7 +24,8 @@
 // and the picker may take either; so STOP is walked first, and the last
 // sharing path closes both (the share ends with its tab).
 import { spawn } from 'node:child_process';
-import { mkdirSync, readFileSync } from 'node:fs';
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -34,10 +35,20 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const shots = join(root, 'e2e/screenshots');
 mkdirSync(shots, { recursive: true });
 const PORT = 8173;
-const PAGE = `http://127.0.0.1:${PORT}/`;
+// CYMATIC_BASE=/cymatic_bridge/ walks a build made for GitHub Pages at its sub-path (build it with the same variable).
+const BASE = process.env.CYMATIC_BASE ?? '/';
+const PAGE = `http://127.0.0.1:${PORT}${BASE}`;
 const TONE = `http://127.0.0.1:${PORT}/__test/tone.html`;
 
-const server = spawn(join(root, 'node_modules/.bin/serve'), [join(root, 'dist'), '-l', `tcp://127.0.0.1:${PORT}`, '--no-port-switching'], { cwd: root, stdio: 'ignore' });
+// A sub-path build is served from a temporary root with dist/ copied in at that path (as cyberdeck's walk).
+let serveDir = join(root, 'dist');
+let tempRoot = null;
+if (BASE !== '/') {
+  tempRoot = mkdtempSync(join(tmpdir(), 'cymatic-walk-'));
+  cpSync(serveDir, join(tempRoot, BASE), { recursive: true });
+  serveDir = tempRoot;
+}
+const server = spawn(join(root, 'node_modules/.bin/serve'), [serveDir, '-l', `tcp://127.0.0.1:${PORT}`, '--no-port-switching'], { cwd: root, stdio: 'ignore' });
 for (let i = 0; i < 50; i++) {
   try {
     await fetch(PAGE);
@@ -136,6 +147,14 @@ async function scalars() {
   return Object.fromEntries(NAMES.map((n, i) => [n, s[at + i]]));
 }
 
+/**
+ * How long to wait for the signal to go idle after a share ends (ms). It
+ * takes 1.5 s of silence plus a 0.8 s ease, but the engine steps at most
+ * 0.1 s a frame, and software-rendered PLEXUS runs at ~10 frames a second
+ * here, so give it room (a real screen runs 60–144).
+ */
+const IDLE_WAIT_MS = 12000;
+
 /** Waits until `test(scalars)` holds (polling), or fails after `ms`. */
 async function until(test, ms, what) {
   const end = Date.now() + ms;
@@ -187,7 +206,7 @@ try {
     await page.getByRole('dialog').waitFor({ state: 'detached' });
     await page.getByRole('button', { name: 'STOP' }).click();
     await page.getByRole('button', { name: 'LISTEN' }).waitFor();
-    await until((s) => s.idle > 0.9, 6000, 'idle after STOP');
+    await until((s) => s.idle > 0.9, IDLE_WAIT_MS, 'idle after STOP');
   });
 
   await path('LISTEN again: the signal wakes, kicks are beats, bass over treble; closing the shared tab ends the share', async () => {
@@ -234,7 +253,7 @@ try {
       console.log('    (headless: the share is made in the page, so closing a tab can’t end it; STOP instead)');
       await page.getByRole('button', { name: 'STOP' }).click();
     }
-    await until((s) => s.idle > 0.9, 6000, 'idle after the share ended');
+    await until((s) => s.idle > 0.9, IDLE_WAIT_MS, 'idle after the share ended');
   });
 
   await path('D: the signal meter opens and closes', async () => {
@@ -380,6 +399,7 @@ try {
 } finally {
   await browser.close();
   server.kill();
+  if (tempRoot) rmSync(tempRoot, { recursive: true, force: true });
 }
 
 console.log(failed ? `\n${failed} path(s) failed` : '\nall paths passed');

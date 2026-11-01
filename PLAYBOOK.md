@@ -13,6 +13,8 @@ Lessons from cymatic_bridge, written so other projects can reuse them. cyberdeck
 
 **1.5 Ending a share ends the tracks.** Chrome's Stop sharing and closing the shared tab both fire `ended` on the audio and video tracks: listen on both.
 
+**1.7 Make the AudioContext inside the click, before awaiting the picker.** Made after `await getDisplayMedia`, it can start suspended, and every analyser frame is then silence. The first share was silent in tests until the context moved into the click (0.1.1).
+
 **1.6 A share without "Share tab audio" has no audio track.** Check for one, stop the stream at once (Chrome's sharing bar goes), and say plainly what to tick.
 
 ## 2. Testing tab capture in Chromium
@@ -21,6 +23,8 @@ Lessons from cymatic_bridge, written so other projects can reuse them. cyberdeck
 **2.2 Headless Chrome captures a tab's sound as silence.** The track is live, but every sample is 0 (no audio output to tap). Run headed: on WSL, WSLg's display works. Skip only the sound checks when headless, and say so.
 
 **2.3 Two tabs with the same title: the picker may take either.** Order the paths so it doesn't matter (stop the share before closing tabs, then close all of them).
+
+**2.5 On WSLg, covered windows run at about 1 fps.** Headed test windows are drawn on the Windows desktop; with another window in front of them, `requestAnimationFrame` runs at about 1 Hz, whatever Chrome's anti-throttling flags say. Timing tests need them uncovered.
 
 **2.4 Background tabs' timers run about once a second.** A WebAudio test signal scheduled half a second ahead plays with gaps from a background tab: queue it seconds ahead (`ctx.currentTime + 3`).
 
@@ -34,6 +38,10 @@ Lessons from cymatic_bridge, written so other projects can reuse them. cyberdeck
 **3.4 A flow clock instead of real time.** `flow += dt × (0.25 + 1.75 × level)`: motion that speeds up with the music, and never jumps or reverses.
 
 **3.5 Idle is a synthetic signal, not a special case.** After 1.5 s of silence, blend the bands into a slow breath; scenes draw it as they draw music.
+
+**3.6 An analyser's lag is about half its window.** Its window weighs the middle most, so fftSize 4096 at 48 kHz reports ~43 ms ago. Use a long window only for spectral detail, and read beats from a short one (fftSize 512, ~5 ms) with a handful of coarse bands and their own gain. Scale flux to a fixed band count, so one threshold fits both (0.1.1).
+
+**3.7 Draw when the data arrives, not on the worker's own frame.** A worker drawing at its own `requestAnimationFrame` uses data posted after it may already have run: up to a frame late. Drawing in the message handler commits with that task (0.1.1).
 
 ## 4. Feedback trails
 **4.1 Add a flash before the trail mix, never after.** `col = max(col + flash, prev × keep)`. Adding the flash after the max stacks it every frame, and the screen settles at flash / (1 − keep): a grey haze (0.1.0's first build).

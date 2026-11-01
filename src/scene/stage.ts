@@ -17,6 +17,13 @@
  *     which is the 2D canvas's event).
  * It draws every frame the screen shows (R16: no cap), and only while
  * started (the page stops it while hidden, R17).
+ *
+ * When to draw (0.1.1, the user: the visuals lagged the sound): each frame
+ * is drawn the moment the page's SIGNAL frame arrives, not at the worker's
+ * own next animation frame, which could come up to a frame later. The page
+ * posts once per screen frame, so this is still once per frame. The worker's
+ * own animation frames only draw when no signal has come for DRIVEN_MS
+ * (before the page's loop starts, and for the tests' probes).
  */
 import { rgb01 } from '@/lib/palettes';
 import { OFFSET, SCALAR, type Signal, emptySignal } from '@/lib/signal/layout';
@@ -29,6 +36,8 @@ import { findFactory } from './registry';
 import compositeFrag from './shaders/composite.frag?raw';
 import type { PixelsProbe, SceneEngine, SceneFrame, SceneLook, StageSize } from './types';
 
+/** How long after the last SIGNAL frame the worker's own animation frames take over drawing (ms). */
+const DRIVEN_MS = 100;
 /** How long a scene change crossfades (s). */
 export const CROSSFADE_S = 0.6;
 /** GLOW's levels as the shader's uGlow (LOW … MAX). */
@@ -105,6 +114,8 @@ export function createStage(canvas: OffscreenCanvas, size: StageSize, scene: str
   let frameId = 0;
   let lastT = 0;
   let readyOnce = false;
+  // When the last SIGNAL frame arrived (ms): while recent, signals drive the drawing.
+  let lastSignal = -Infinity;
   // Probes waiting for the next frame's pixels.
   const pixelWaiters: ((p: PixelsProbe) => void)[] = [];
   // Each program's uniform locations, looked up once.
@@ -196,9 +207,16 @@ export function createStage(canvas: OffscreenCanvas, size: StageSize, scene: str
     return target.texture;
   };
 
+  /** The worker's own animation frame: draws only when no signal is driving, and keeps itself going. */
+  const tick = (t: number) => {
+    frameId = 0;
+    if (!started || lost) return;
+    if (performance.now() - lastSignal > DRIVEN_MS || pixelWaiters.length) frame(t);
+    frameId = ev.requestFrame(tick);
+  };
+
   /** One frame: the signal up, each live scene into its target, then the composite onto the canvas. */
   const frame = (t: number) => {
-    frameId = 0;
     if (!started || lost || !active) return;
     const start = performance.now();
     const dt = lastT ? Math.min((t - lastT) / 1000, 0.1) : 1 / 60;
@@ -240,7 +258,6 @@ export function createStage(canvas: OffscreenCanvas, size: StageSize, scene: str
       readyOnce = true;
       ev.ready();
     }
-    frameId = ev.requestFrame(frame);
   };
 
   /** Reads the canvas as just drawn (before it's shown, so preserveDrawingBuffer isn't needed) and answers the probes. */
@@ -280,7 +297,7 @@ export function createStage(canvas: OffscreenCanvas, size: StageSize, scene: str
   };
 
   const schedule = () => {
-    if (started && !lost && !frameId) frameId = ev.requestFrame(frame);
+    if (started && !lost && !frameId) frameId = ev.requestFrame(tick);
   };
 
   canvas.addEventListener('webglcontextlost', (e) => {
@@ -317,6 +334,9 @@ export function createStage(canvas: OffscreenCanvas, size: StageSize, scene: str
     },
     setSignal(s) {
       signal = s;
+      lastSignal = performance.now();
+      // Drawn at once: the frame goes out with this task, not at the next animation frame.
+      frame(lastSignal);
     },
     setScene(id, l, withTrails) {
       wanted = { id, look: l, trails: withTrails };

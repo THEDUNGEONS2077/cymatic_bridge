@@ -2,6 +2,15 @@
 
 Each release, in the user's words where they gave them. The build number counts every release.
 
+## 0.1.1 (build 2)
+**On time.** The user, trying S1 on YouTube: "it doesn't really feel on time": the visuals lagged the sound. They chose to keep the sound playing from the YouTube tab, rather than routing it through the page with a delay. So every lag the page controls was cut. Afterwards: "it's good".
+- **Shorter spectrum window:** fftSize 4096 → 2048, about 21 ms less lag.
+- **Beats from a separate short analyser** (fftSize 512, about 5 ms): kicks are caught as they start.
+- **Each frame drawn when its signal arrives,** not at the worker's next frame: up to a frame less.
+- **Levels rise in 10 ms** (was 30).
+- **Fix:** the audio context is now made inside the LISTEN click. Made after the picker, it could start suspended, and the first share would be silent.
+- **The walk reports the beat latency** (a kick at the speakers → the beat seen).
+
 ## 0.1.0 (build 1)
 **S1: the bare bones of SIGNAL** (the user: "first make sure we have covered all possible requirement specifications, then we start with the bare bones of signal"). Planned over 13 rounds of questions (PLAN.md R1–R30).
 - **SIGNAL**, the method every scene is built on:

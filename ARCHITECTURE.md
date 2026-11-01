@@ -76,15 +76,25 @@ A `Float32Array` of 204 numbers:
   - `cost`: the analysis time, for the meter.
 
 ### 4.2 The engine (`lib/signal/signal.ts`), each frame
-1. **Bands** (`bands.ts`). The analysers (fftSize 4096: 2048 bins, 11.7 Hz apart at 48 kHz) give decibels per bin. 64 log-spaced bands run from 30 Hz to 16 kHz, each about 1/7 octave. Bands narrower than a bin (below ~200 Hz) read between bins; wider ones average their bins' power. **The tilt:** +3.5 dB an octave above 1 kHz (and less below). Music's spectrum falls about that much, so the tilt levels it: the range weighs evenly (R20).
+1. **Bands** (`bands.ts`). The analysers (fftSize 2048: 1024 bins, 23.4 Hz apart at 48 kHz) give decibels per bin. 64 log-spaced bands run from 30 Hz to 16 kHz, each about 1/7 octave. Bands narrower than a bin (below ~400 Hz) read between bins; wider ones average their bins' power. **The tilt:** +3.5 dB an octave above 1 kHz (and less below). Music's spectrum falls about that much, so the tilt levels it: the range weighs evenly (R20).
 2. **Gain** (`dynamics.ts`). One peak follower over all bands of both channels: it rises at once and falls 2.5 dB a second, floored at -62 dB. A band reads 0..1 over the 48 dB below the peak. It's one gain, not one per band, because per-band gain lifts the hiss above a bass-heavy track to full. A quiet track still fills the range, and silence stays dark (the floor).
 3. **Idle** (`idle.ts`). After 1.5 s with the mean band under 0.02, idle eases to 1 (0.8 s). The bands then blend into a synthetic breath, a 7 s swell drifting across the spectrum (R14). Scenes need no idle code.
-4. **Beat** (`beat.ts`). Spectral flux: how much the bands rose since last frame, weighted per group by the scene's profile. It's normalized to a 60th of a second, so a 144 Hz screen finds the same beats. A beat is a flux above max(0.35, mean + 1.6 deviations), with mean and deviation over the last ~1.5 s, at least 0.12 s after the last beat. There are no beats while idle.
+4. **Beat** (`beat.ts`). Spectral flux: how much the bands rose since last frame, weighted per group by the scene's profile. The flux is read from a separate short analyser (fftSize 512) as 16 coarse bands with their own gain (§ 4.4); a frame without it (the unit tests) uses the mono bands. It's normalized to a 60th of a second, so a 144 Hz screen finds the same beats. A beat is a flux above max(0.35, mean + 1.6 deviations), with mean and deviation over the last ~1.5 s, at least 0.12 s after the last beat. There are no beats while idle.
 5. **Accent** (`strobe.ts`). It fires only on beats of strength 0.6 or more, at least 0.34 s apart, never above 0.8, and decays over 0.2 s. So no closed one-second window can hold more than 3 flashes (WCAG 2.3.1, R18). It's the only value allowed to flash the picture.
-6. **Smoothing.** Each band and scalar is eased with the scene's **react profile** (`lib/scenes.ts`: attack/release for bands and for levels, beat weights per group). That's how each scene gets its own feel without code (R20). The balanced default: bands 15 ms up and 140 ms down; levels 30 ms up and 250 ms down; beat weights 1 / 0.6 / 0.35 / 0.25, bass to treble.
+6. **Smoothing.** Each band and scalar is eased with the scene's **react profile** (`lib/scenes.ts`: attack/release for bands and for levels, beat weights per group). That's how each scene gets its own feel without code (R20). The balanced default: bands 15 ms up and 140 ms down; levels 10 ms up and 250 ms down; beat weights 1 / 0.6 / 0.35 / 0.25, bass to treble.
 7. **Flow.** `flow += dt × (0.25 + 1.75 × level)`. Motion driven by flow speeds up with the music and never jumps or runs backward.
 
 There's no allocation per frame. Before LISTEN, the engine is stepped with silence, so idle takes the same path.
+
+### 4.4 Timing (0.1.1)
+The user, on S1: "it doesn't really feel on time". The visuals lagged the sound. The sound plays straight from the tab, while the page's copy comes through Chrome's capture, so some lag can't be removed without playing the sound through the page delayed, which the user declined. Everything else was cut:
+
+| Stage | Before | After |
+|---|---|---|
+| Spectrum window (an analyser reports about half a window ago) | fftSize 4096, ~43 ms | 2048, ~21 ms |
+| Beats | from the spectrum, ~43 ms | a separate fftSize 512 analyser, ~5 ms |
+| Levels' attack | 30 ms | 10 ms |
+| Page → drawn | the worker's next animation frame (up to one frame later) | drawn as the signal arrives |
 
 ### 4.3 On the graphics card (`scene/gl/signalTexture.ts`, `scene/shaders/signal.glsl`)
 - **The texture:** RG16F, 64 × 130.
@@ -110,7 +120,7 @@ There's no allocation per frame. Before LISTEN, the engine is stepped with silen
   - `suppressLocalAudioPlayback: false`, so the tab keeps playing its own sound and the page never plays music;
   - a video track, as Chrome requires one. It's kept at ≤1 fps, 320×180, and never drawn. It carries the capture handle for the title bridge, and stopping it would end the share.
   - **Results:** a share without audio is let go at once with a plain notice (R8); a closed picker changes nothing.
-- **`audio/analyser.ts`** builds the graph: stream → splitter → two AnalyserNodes (left, right; smoothing off, since SIGNAL smooths) → a silent gain → the speakers. The silent gain only makes sure the graph is pulled. A mono stream feeds both analysers.
+- **`audio/analyser.ts`** builds the graph inside the LISTEN click (a context made after the picker's await could start suspended, making the first share silent). The graph: stream → splitter → two AnalyserNodes (left, right, fftSize 2048; smoothing off, since SIGNAL smooths), plus a short mono AnalyserNode for beats (fftSize 512), all → a silent gain → the speakers. The silent gain only makes sure the graph is pulled. A mono stream feeds both analysers.
 - **`audio/listen.ts`** runs the loop: read → step → post, every frame while visible.
   - **SWITCH** opens the picker again and reconnects the same graph.
   - **STOP**, or either track ending (Chrome's Stop sharing, the tab closed), goes back to LISTEN while the scene eases into idle (R7).
@@ -128,7 +138,7 @@ There's no allocation per frame. Before LISTEN, the engine is stepped with silen
   3. during a crossfade, draw the old scene too (0.6 s, smoothstep, R15);
   4. composite onto the canvas with dither.
 
-  It draws every frame the screen shows (R16).
+  It draws each frame **as the page's SIGNAL frame arrives** (one a screen frame: R16), not at its own next animation frame, which would cost up to a frame of lag. Its own animation frames draw only when no signal has come for 100 ms (before the loop starts, and for probes).
   - **Lost context:** `webglcontextlost` is `preventDefault`ed. On `webglcontextrestored` everything is built again, scenes included.
   - **Frame ring:** each frame's start and drawing time (512 frames), answered at once for the guard and the meter.
 - **A scene (`scene/types.ts`)** is a factory: `create(gl)` returns `{ draw(frame), destroy() }`. `frame.bind(program)` sets every uniform the include declares. TEST (`scenes/test/`) is the whole pattern in 30 lines.
@@ -172,13 +182,13 @@ There's no allocation per frame. Before LISTEN, the engine is stepped with silen
 | TEST, software-rendered, 1600×900 | 14–19 fps (no GPU here; not the user's number) |
 
 ## 10. Testing
-- **`npm run check`:** typecheck, lint and Vitest. There are 29 tests:
+- **`npm run check`:** typecheck, lint and Vitest. There are 30 tests:
   - SIGNAL on synthetic analyser frames:
     - a sine lands in its band;
     - the tilt;
     - the gain rises at once, falls slowly and keeps its floor;
     - smoothing is the same at 60 and 144 Hz;
-    - 120 BPM kicks are found once each (at 60 and 144 Hz), with none in a steady tone or a slow swell;
+    - 120 BPM kicks are found once each (at 60 and 144 Hz, and through the short beat analyser), with none in a steady tone or a slow swell;
     - the strobe never passes 3 flashes in any second at 30, 60 or 144 Hz;
     - idle starts and wakes;
     - the breath stays in range;
@@ -198,8 +208,8 @@ There's no allocation per frame. Before LISTEN, the engine is stepped with silen
     - hidden, where nothing is drawn and it resumes;
     - a lost context restored;
     - the speed report.
-  - The music is a routed test tab titled CB-TEST: WebAudio kicks over a 440 Hz tone. `--auto-select-tab-capture-source-by-title` answers the picker.
-  - **It runs headed when there's a display.** Headless Chrome captures a tab's sound as silence (PLAYBOOK § 2).
+  - The music is a routed test tab titled CB-TEST: WebAudio kicks over a 440 Hz tone. The LISTEN path also reports the **beat latency**: each kick's time at the speakers (`getOutputTimestamp`) against when the page saw its beat. `--auto-select-tab-capture-source-by-title` answers the picker.
+  - **It runs headed when there's a display.** Headless Chrome captures a tab's sound as silence (PLAYBOOK § 2). Covered by another window on the Windows desktop, WSLg's windows run at about 1 frame a second, and the sound paths fail; run it with nothing in front of it.
 
 ## 11. Known limits and next steps
 - **There's one scene (TEST) and one palette (UV).** S3 brings the four palettes and the settings drop-down; S4 brings PLEXUS.

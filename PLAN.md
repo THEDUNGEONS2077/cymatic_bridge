@@ -223,4 +223,5 @@ These are targets, measured from the first build and recorded in ARCHITECTURE §
     - the accent's gap is 0.34 s (exactly 1/3 s lets a closed second hold four flashes);
     - no page fallback for the stage (WebGL 2 in a worker is required);
     - the walk runs headed (headless tab capture is silent).
-- **Next:** S2, the title bridge (it starts with the capture-handle probe). Ask the user before starting.
+- **2026-10-31/11-01: 0.1.1 (build 2).** Timing: the user found the visuals lagged the sound. They kept the sound playing from the tab. A shorter spectrum window, a fast beat analyser, drawing as the signal arrives and quicker level attacks fixed it: the user said "it's good, let's move forward". The audio context is also now made inside the click.
+- **Next:** S2, the title bridge (it starts with the capture-handle probe).

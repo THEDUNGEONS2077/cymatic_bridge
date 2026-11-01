@@ -65,7 +65,11 @@ await context.route(TONE, (route) =>
         o.frequency.setValueAtTime(120, at); o.frequency.exponentialRampToValueAtTime(45, at + 0.2);
         g.gain.setValueAtTime(0.9, at); g.gain.exponentialRampToValueAtTime(0.001, at + 0.25);
         o.connect(g).connect(ctx.destination); o.start(at); o.stop(at + 0.3);
+        window.kicks.push(at);
       }
+      // Every kick's start, in the audio clock; kickTimes() maps them to epoch ms at the speakers (for the beat latency).
+      window.kicks = [];
+      window.kickTimes = () => { const ts = ctx.getOutputTimestamp(); return window.kicks.map((k) => performance.timeOrigin + ts.performanceTime + (k - ts.contextTime) * 1000); };
       // Queued 3 s ahead: a background tab's timers run about once a second, and a gap in the queue is a missing kick.
       let next = ctx.currentTime + 0.1;
       const fill = () => { while (next < ctx.currentTime + 3) { kick(next); next += 0.5; } };
@@ -157,8 +161,32 @@ try {
     }
     const woke = await until((s) => s.idle < 0.2, 8000, 'wake');
     const before = woke.beatCount;
+    // Record, in the page, when each beat is seen (epoch ms), and how often its frames run.
+    await page.evaluate(() => {
+      window.__beats = [];
+      window.__frames = 0;
+      let last = -1;
+      const loop = () => {
+        window.__frames++;
+        const c = window.__cymaticSignal.latest()[64 * 3 + 6];
+        if (last >= 0 && c !== last) window.__beats.push(performance.timeOrigin + performance.now());
+        last = c;
+        requestAnimationFrame(loop);
+      };
+      loop();
+    });
     await page.waitForTimeout(4000);
     const s = await scalars();
+    // The beat latency: each beat seen, against the latest kick that reached the speakers before it.
+    const beatsSeen = await page.evaluate(() => window.__beats);
+    const kickTimes = await tones[0].evaluate(() => window.kickTimes()).catch(() => []);
+    const kickTimes2 = await tones[1].evaluate(() => window.kickTimes()).catch(() => []);
+    const lags = beatsSeen
+      .map((b) => Math.min(...[kickTimes, kickTimes2].map((ks) => b - (ks.filter((k) => k <= b).pop() ?? -Infinity))))
+      .filter((x) => x >= 0 && x < 400)
+      .sort((a, b) => a - b);
+    const loopFps = (await page.evaluate(() => window.__frames)) / 4;
+    console.log(`    beat latency (kick at the speakers → beat seen): median ${lags[Math.floor(lags.length / 2)]?.toFixed(0)} ms, range ${lags[0]?.toFixed(0)}–${lags[lags.length - 1]?.toFixed(0)} ms over ${lags.length} beats; page loop ${loopFps.toFixed(0)} fps`);
     // 4 s at 120 BPM is 8 kicks; allow a missed one or two at the edges.
     if (s.beatCount - before < 6) throw new Error(`beats: ${s.beatCount - before} in 4 s`);
     if (s.bass <= s.treble) throw new Error(`bass ${s.bass} ≤ treble ${s.treble}`);

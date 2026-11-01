@@ -7,7 +7,10 @@
  * hands their decibels and waveforms here. The steps, in order:
  *   1. bands.ts: bins → 64 log bands (dB, tilted), per channel;
  *   2. dynamics.ts: one auto-gain over both channels → 0..1;
- *   3. beat.ts: the beat, from the rise of the mono bands;
+ *   3. beat.ts: the beat, from the rise of FAST_BANDS coarse bands read
+ *      from the short beat analyser (≈5 ms of lag; the user, 0.1.1: the
+ *      visuals lagged the sound), or from the mono bands when a frame has
+ *      no fast bins;
  *   4. strobe.ts: the limited beat accent;
  *   5. dynamics.ts smooth: each band and scalar eased by the scene's
  *      profile (attack/release), so the look of a scene's response is a
@@ -40,7 +43,8 @@ export interface ReactProfile {
 /** The balanced default: quick to rise, a short fall, beats mostly from the low end. */
 export const BALANCED: ReactProfile = {
   bands: { attack: 0.015, release: 0.14 },
-  levels: { attack: 0.03, release: 0.25 },
+  // Levels rise in 10 ms (0.1.1: 30 ms read as late).
+  levels: { attack: 0.01, release: 0.25 },
   beatWeights: [1, 0.6, 0.35, 0.25],
 };
 
@@ -55,13 +59,17 @@ export const GROUP_HZ: readonly [number, number][] = [
 /** The flow clock's speed: this much of real time when silent, plus this much more at full level. */
 export const FLOW_BASE = 0.25;
 export const FLOW_GAIN = 1.75;
+/** How many coarse bands the beat detector reads from the short analyser (log-spaced, 40 Hz–16 kHz). */
+export const FAST_BANDS = 16;
 /** How fast stereo balance follows (s). */
 const BALANCE_ENV: Envelope = { attack: 0.3, release: 0.3 };
 /** How fast the waveform's scale follows its peak: rising at once, falling over a second or so. */
 const WAVE_FALL = 0.5;
 
-/** One analyser frame: decibels per bin and a waveform, for each channel. */
+/** One analyser frame: decibels per bin and a waveform, for each channel, and the beat analyser's bins (mono). */
 export interface AnalyserFrame {
+  /** The short beat analyser's decibels per bin (mono); without them, beats come from the mono bands. */
+  binsFast?: Float32Array<ArrayBuffer>;
   // Backed by plain ArrayBuffers: the analyser's get…Data calls take no other kind.
   binsL: Float32Array<ArrayBuffer>;
   binsR: Float32Array<ArrayBuffer>;
@@ -79,11 +87,23 @@ export interface SignalEngine {
   readonly signal: Signal;
 }
 
-/** A new engine for analysers of `binCount` bins at `sampleRate` Hz. */
-export function createSignalEngine(binCount: number, sampleRate: number, profile: ReactProfile = BALANCED): SignalEngine {
+/**
+ * A new engine for spectrum analysers of `binCount` bins at `sampleRate`
+ * Hz, and a beat analyser of `fastBinCount` bins (0: none, beats from the
+ * mono bands).
+ */
+export function createSignalEngine(binCount: number, sampleRate: number, profile: ReactProfile = BALANCED, fastBinCount = 0): SignalEngine {
   const spans: BandSpan[] = bandSpans(BANDS, binCount, sampleRate);
   const groups = GROUP_HZ.map(([lo, hi]) => bandRange(spans, lo, hi));
   let weights = beatWeights(BANDS, groups, profile.beatWeights);
+  // The beat analyser's coarse bands, its own gain and weights (its decibels sit on another scale: a shorter window).
+  const fastSpans: BandSpan[] = fastBinCount ? bandSpans(FAST_BANDS, fastBinCount, sampleRate, 40) : [];
+  const fastGroups = GROUP_HZ.map(([lo, hi]) => bandRange(fastSpans, lo, hi));
+  let fastWeights = beatWeights(FAST_BANDS, fastGroups, profile.beatWeights);
+  const fastDb = new Float32Array(FAST_BANDS);
+  const fastRaw = new Float32Array(FAST_BANDS);
+  const fastGain: Gain = newGain();
+  const fastBeat: BeatState = newBeat(FAST_BANDS);
   let current = profile;
 
   // Working buffers, made once.
@@ -113,6 +133,7 @@ export function createSignalEngine(binCount: number, sampleRate: number, profile
     setProfile(p) {
       current = p;
       weights = beatWeights(BANDS, groups, p.beatWeights);
+      fastWeights = beatWeights(FAST_BANDS, fastGroups, p.beatWeights);
     },
     step(frame, dt, t) {
       dt = Math.min(Math.max(dt, 0), 0.1);
@@ -142,8 +163,22 @@ export function createSignalEngine(binCount: number, sampleRate: number, profile
       const idleNow = stepIdle(idle, level, dt);
       const live = 1 - idleNow;
 
-      // 3–4. The beat and its limited accent.
-      const strength = detectBeat(beat, mono, weights, dt) * (idleNow < 0.5 ? 1 : 0);
+      // 3–4. The beat (from the short analyser when there is one: it hears a kick ~16 ms sooner) and its limited accent.
+      let found: number;
+      let pulse: BeatState;
+      if (frame?.binsFast && fastSpans.length) {
+        readBands(frame.binsFast, fastSpans, fastDb);
+        let fastLoudest = -Infinity;
+        for (let i = 0; i < FAST_BANDS; i++) fastLoudest = Math.max(fastLoudest, fastDb[i]!);
+        followPeak(fastGain, fastLoudest, dt);
+        for (let i = 0; i < FAST_BANDS; i++) fastRaw[i] = normalize(fastGain, fastDb[i]!);
+        found = detectBeat(fastBeat, fastRaw, fastWeights, dt);
+        pulse = fastBeat;
+      } else {
+        found = detectBeat(beat, mono, weights, dt);
+        pulse = beat;
+      }
+      const strength = found * (idleNow < 0.5 ? 1 : 0);
       const accent = stepStrobe(strobe, strength, dt);
 
       // 5. Each band eased toward its value (blended into the breath when idle).
@@ -167,8 +202,8 @@ export function createSignalEngine(binCount: number, sampleRate: number, profile
         put(names[g]!, smooth(get(names[g]!), to > from ? s / (to - from) : 0, dt, current.levels));
       });
 
-      put('beat', beat.pulse * live);
-      put('beatCount', beat.count);
+      put('beat', pulse.pulse * live);
+      put('beatCount', beat.count + fastBeat.count);
       put('accent', accent * live);
 
       // Balance: right minus left over both, eased; centred when there's nothing.

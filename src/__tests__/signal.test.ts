@@ -207,6 +207,30 @@ describe('the engine', () => {
     expect(scalar(e.signal, 'level')).toBeLessThan(0.25);
   });
 
+  it('finds kicks through the short beat analyser too', () => {
+    // The beat analyser: fftSize 512 (256 bins, 94 Hz apart). A kick is loud low bins; the spectrum's frames carry a quiet tone.
+    const FAST = 256;
+    const fastHz = RATE / (FAST * 2);
+    const fastBins = (loud: boolean) => {
+      const b = new Float32Array(FAST).fill(-110);
+      if (loud) for (let i = 0; i < Math.ceil(150 / fastHz); i++) b[i] = -8;
+      b[Math.round(440 / fastHz)] = -30;
+      return b;
+    };
+    const e = createSignalEngine(BINS, RATE, undefined, FAST);
+    let t = 0;
+    const frames = 480;
+    for (let i = 0; i < frames; i++) {
+      // A kick every 30 frames (120 BPM at 60 Hz), 3 frames long.
+      const kick = i % 30 < 3;
+      const f = { ...frame(bins({ 60: kick ? -10 : -60, 440: -30 })), binsFast: fastBins(kick) };
+      e.step(f, DT, (t += DT));
+    }
+    // 16 kicks; the first one or two teach the threshold.
+    expect(scalar(e.signal, 'beatCount')).toBeGreaterThanOrEqual(14);
+    expect(scalar(e.signal, 'beatCount')).toBeLessThanOrEqual(16);
+  });
+
   it('pans: a source on the right gives a positive balance', () => {
     const e = createSignalEngine(BINS, RATE);
     let t = 0;

@@ -64,7 +64,8 @@ export function detectBeat(state: BeatState, bands: Float32Array, weights: Float
     state.prev[i] = bands[i]!;
   }
   // Frame-rate independent: flux per 60th of a second, so 144 Hz screens see the same beats.
-  flux *= 1 / 60 / Math.max(dt, 1 / 240);
+  // Band-count independent: as if over 64 bands, so the 16 coarse beat bands share MIN_FLUX.
+  flux *= (1 / 60 / Math.max(dt, 1 / 240)) * (64 / Math.max(1, bands.length));
 
   state.since += dt;
   state.pulse *= Math.exp(-dt / PULSE_DECAY_S);

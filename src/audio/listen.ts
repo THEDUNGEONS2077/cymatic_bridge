@@ -20,7 +20,7 @@ import { type ReactProfile, createSignalEngine, type SignalEngine } from '@/lib/
 import { postSignal } from '@/scene/host';
 import { liveStore } from '@/store/live';
 
-import { type Analyser, createAnalyser, FFT_SIZE } from './analyser';
+import { type Analyser, createAnalyser, FAST_FFT_SIZE, FFT_SIZE } from './analyser';
 import { captureTab, stopStream } from './capture';
 
 /** The notice when a tab was shared without its sound (R8). */
@@ -31,7 +31,7 @@ export const NOTICE_UNSUPPORTED = 'THIS BROWSER CAN’T SHARE A TAB’S SOUND ·
 let analyser: Analyser | null = null;
 let stream: MediaStream | null = null;
 // Until LISTEN there's no analyser: the engine is made for a typical one (48 kHz) and remade if the real one differs.
-let engine: SignalEngine = createSignalEngine(FFT_SIZE / 2, 48000);
+let engine: SignalEngine = createSignalEngine(FFT_SIZE / 2, 48000, undefined, FAST_FFT_SIZE / 2);
 let profile: ReactProfile | null = null;
 let frameId = 0;
 let lastT = 0;
@@ -61,18 +61,23 @@ function halt(): void {
   frameId = 0;
 }
 
-/** Uses `s` as the source: a new graph, or the same graph reconnected (SWITCH). */
+/** The audio graph, made on the first LISTEN, inside its click (analyser.ts says why). */
+function ensureAnalyser(): Analyser {
+  if (analyser) return analyser;
+  analyser = createAnalyser();
+  // A context at another rate than the engine assumed: remake it for the real bins.
+  if (analyser.sampleRate !== 48000) {
+    engine = createSignalEngine(analyser.binCount, analyser.sampleRate, undefined, analyser.fastBinCount);
+    if (profile) engine.setProfile(profile);
+  }
+  return analyser;
+}
+
+/** Uses `s` as the source (the graph reconnected, SWITCH included). */
 function adoptStream(s: MediaStream): void {
   if (stream) stopStream(stream);
   stream = s;
-  if (!analyser) {
-    analyser = createAnalyser(s);
-    // A context at another rate than the engine assumed: remake it for the real bins.
-    if (analyser.sampleRate !== 48000) {
-      engine = createSignalEngine(analyser.binCount, analyser.sampleRate);
-      if (profile) engine.setProfile(profile);
-    }
-  } else analyser.connect(s);
+  ensureAnalyser().connect(s);
   // The share can end from Chrome's own bar or the tab closing: either track ending ends it.
   for (const track of s.getTracks()) track.addEventListener('ended', () => stream === s && stopListening());
   liveStore.getState().setCapture('live');
@@ -86,6 +91,8 @@ function adoptStream(s: MediaStream): void {
 export async function listen(): Promise<void> {
   const live = liveStore.getState();
   const before = live.capture;
+  // The audio context first, still inside the click: after the picker's await it could start suspended.
+  ensureAnalyser();
   live.setCapture('asking');
   const r = await captureTab();
   if (r.ok) {

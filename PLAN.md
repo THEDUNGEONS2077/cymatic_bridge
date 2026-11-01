@@ -246,4 +246,9 @@ These are targets, measured from the first build and recorded in ARCHITECTURE §
 - **2026-11-01: 0.4.2 (build 7).** "Refine and optimize": the camera glides (no steps at nodes), and PLEXUS draws direct onto the canvas, dithering its own light (+30% measured). The look is unchanged.
 - **2026-11-01: 0.4.3 (build 8):** the MIT licence, a one-time tip about Chrome's sharing bar (it can't be hidden by the page), and the first push to GitHub (public repo THEDUNGEONS2077/cymatic_bridge; the user: "let's push to github for what's been done so far"). Not deployed to Pages yet.
 - **2026-11-01: deployed** (0.4.3, build of 7f27356). Then 0.4.4 removes 0.4.3's wrong "Hide button" tip: the tab-sharing bar can't be closed at all. The title bridge was checked on real YouTube with the live site (the label arrives); the user's report that it isn't working is being looked into.
-- **Next:** S5 CODE RAIN EQ (mock-ups first), once the user is happy with the live site. Ask the user before starting.
+- **2026-11-01: S5 started.** CODE RAIN EQ mock-ups (`mockups/code-rain/`), published at https://claude.ai/artifact/Ac7By3GeBJzZwBc4vqTNra:
+  - A CASCADE: flat rain;
+  - B STRATA: three depth layers;
+  - C TUNNEL: streams rushing from a core, PLEXUS's flight as rain.
+
+  Waiting for the user's pick.

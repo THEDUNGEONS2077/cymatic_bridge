@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CODE RAIN EQ Directions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  /*
+   * CODE RAIN EQ mock-ups for cymatic_bridge (S5): three directions, all
+   * driven by one synthetic 120 BPM track (the PLEXUS mock-ups' page and
+   * track). One visual world (black, like the app), so no light theme.
+   * Layout: a header, a sticky control bar (sound, palette), then the three
+   * directions stacked, each a wide canvas with its notes beside it.
+   */
+  :root {
+    --bg: #000000;
+    --surface: #07050d;
+    --line: #261a3d;
+    --line-lit: #442059;
+    --text: #bb8ef0;
+    --text-dim: #a173e0;
+    --accent: #c25bff;
+    --bright: #ecd6ff;
+    --font: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 13px; line-height: 1.55; }
+  header { padding: 28px 24px 12px; max-width: 1240px; margin: 0 auto; }
+  h1 { margin: 0 0 6px; font-size: 18px; letter-spacing: 0.12em; color: var(--accent); text-shadow: 0 0 6px color-mix(in srgb, var(--accent) 35%, transparent); text-wrap: balance; }
+  .lede { margin: 0; max-width: 72ch; color: var(--bright); }
+  .lede span { color: var(--text); }
+  .bar { position: sticky; top: 0; z-index: 5; background: color-mix(in srgb, var(--bg) 86%, transparent); border-bottom: 1px solid var(--line-lit); }
+  .bar-inner { max-width: 1240px; margin: 0 auto; padding: 10px 24px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+  .bar-label { color: var(--text-dim); letter-spacing: 0.08em; font-size: 11px; }
+  button { font: inherit; font-size: 11px; letter-spacing: 0.06em; height: 26px; padding: 0 10px; color: var(--text); background: var(--bg); border: 1px solid var(--line-lit); border-radius: 2px; cursor: pointer; }
+  button:hover, button:focus-visible { color: var(--bright); border-color: var(--accent); box-shadow: 0 0 6px color-mix(in srgb, var(--accent) 35%, transparent); }
+  button:focus-visible { outline: 1px solid var(--bright); outline-offset: 1px; }
+  button[aria-pressed="true"] { color: var(--bright); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--bg)); }
+  .swatches { display: flex; gap: 6px; flex-wrap: wrap; }
+  .swatch { display: inline-flex; align-items: center; gap: 6px; }
+  .chip { width: 22px; height: 8px; border-radius: 1px; }
+  .section { tabular-nums: auto; font-variant-numeric: tabular-nums; color: var(--text-dim); font-size: 11px; margin-left: auto; }
+  main { max-width: 1240px; margin: 0 auto; padding: 18px 24px 48px; display: grid; gap: 22px; }
+  .dir { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 18px; align-items: start; }
+  .stage { position: relative; border: 1px solid var(--line-lit); background: #000; aspect-ratio: 16 / 8; }
+  .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .tag { position: absolute; left: 10px; top: 8px; font-size: 11px; letter-spacing: 0.1em; color: var(--bright); text-shadow: 0 0 4px #000; }
+  .notes h2 { margin: 2px 0 6px; font-size: 14px; letter-spacing: 0.1em; color: var(--accent); }
+  .notes p { margin: 0 0 8px; color: var(--bright); }
+  .notes ul { margin: 0; padding-left: 16px; }
+  .notes li { margin-bottom: 4px; }
+  footer { max-width: 1240px; margin: 0 auto; padding: 0 24px 32px; color: var(--text-dim); font-size: 11px; }
+  @media (max-width: 860px) { .dir { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>CODE RAIN EQ · THREE DIRECTIONS</h1>
+  <p class="lede">The second cymatic_bridge scene, three ways. Each follows the plan: <span>columns of code rain, each listening to one band, colour showing which</span> (bass = the palette's first colour, treble = its second); a column's loudness sets <span>how fast and how long its drops fall</span>, and <span>heads flare on the beat</span>. From PLEXUS: a calm stage, one focus, smooth. Pick one, or mix parts of them.</p>
+</header>
+
+<div class="bar">
+  <div class="bar-inner">
+    <button type="button" id="sound" aria-pressed="false">PLAY SOUND</button>
+    <span class="bar-label">PALETTE</span>
+    <div class="swatches" id="swatches" role="group" aria-label="Palette"></div>
+    <span class="section" id="section" aria-live="off">BAR 1 · FULL</span>
+  </div>
+</div>
+
+<main>
+  <section class="dir" aria-labelledby="a-title">
+    <div class="stage"><canvas id="a" aria-label="Direction A, CASCADE, animated"></canvas><span class="tag">A · CASCADE</span></div>
+    <div class="notes">
+      <h2 id="a-title">A · CASCADE</h2>
+      <p>The classic: rain across the whole screen, flat, every column its own band.</p>
+      <ul>
+        <li>Loud bands fall faster with longer trails; quiet ones drift short and dim.</li>
+        <li>Heads glow near-white; on a beat the bass columns' heads flare.</li>
+        <li>Glyphs flicker more as the treble rises.</li>
+        <li>The closest to cyberdeck's MATRIX RAIN, made to hear.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="dir" aria-labelledby="b-title">
+    <div class="stage"><canvas id="b" aria-label="Direction B, STRATA, animated"></canvas><span class="tag">B · STRATA</span></div>
+    <div class="notes">
+      <h2 id="b-title">B · STRATA</h2>
+      <p>Rain in three depths, as QUANTUM KERNEL layers its code.</p>
+      <ul>
+        <li>Far: small, dense, dim and slow. Near: large, sparse, bright and fast.</li>
+        <li>Parallax gives depth; each column still listens to its own band.</li>
+        <li>Beat flares are strongest in the near layer.</li>
+        <li>Calm far back, the action up front.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="dir" aria-labelledby="c-title">
+    <div class="stage"><canvas id="c" aria-label="Direction C, TUNNEL, animated"></canvas><span class="tag">C · TUNNEL</span></div>
+    <div class="notes">
+      <h2 id="c-title">C · TUNNEL</h2>
+      <p>PLEXUS's flight, as rain: streams of code rush out of a core at the centre toward you.</p>
+      <ul>
+        <li>Each stream listens to its band: louder rushes faster with a longer tail.</li>
+        <li>Glyphs grow as they near you and fade past the edges.</li>
+        <li>The core glows with the level and pulses on every beat: the focus.</li>
+        <li>The most immersive in fullscreen.</li>
+      </ul>
+    </div>
+  </section>
+</main>
+<footer>Test track: 120 BPM, kick on every beat, snare on 2 and 4, off-beat hats, a bassline and a pad; bars 13–16 of every 16 drop the kick (a breakdown). Flashes are limited as the app limits them (at most 3 a second). Mock-ups are drawn with Canvas 2D; the real scene will be WebGL on SIGNAL.</footer>
+
+<script>
+'use strict';
+// --- The palettes (cymatic_bridge 0.3.0's eight: accent = bass, cool = treble, bright = beat accents). ---
+const PALETTES = [
+  ['UV', '#c25bff', '#20e0c0', '#ecd6ff'], ['LASER', '#ff2e4d', '#5fe3ff', '#ffcbd2'], ['ACID', '#b8ff2e', '#8a5cff', '#edffcb'],
+  ['SOLAR', '#ff8a1f', '#3a6dff', '#ffe2c7'], ['AURORA', '#3dffb0', '#ff4fd8', '#ceffeb'], ['TOXIC', '#ffe32e', '#a04dff', '#fff8cb'],
+  ['FROST', '#9fd8ff', '#5b5bff', '#e7f5ff'], ['FLARE', '#ff4fb3', '#2ee6ff', '#ffd3ec'],
+];
+const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+const mixc = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
+let pal = { accent: hex(PALETTES[0][1]), cool: hex(PALETTES[0][2]), bright: hex(PALETTES[0][3]) };
+// Frequency → colour (the app's freqColor): accent at the bass, cool at the treble, lifted toward bright when loud.
+function freqColor(x, e) {
+  const c = mixc(pal.accent, pal.cool, x * x * (3 - 2 * x));
+  return mixc(c, pal.bright, 0.35 * e * e);
+}
+const rgba = (c, a) => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${Math.max(0, Math.min(1, a))})`;
+
+// Glow sprites along the ramp (16 steps), rebuilt when the palette changes: cheaper than a gradient per node.
+const SPRITES = 16;
+let sprites = [];
+function buildSprites() {
+  sprites = [];
+  for (let k = 0; k < SPRITES; k++) {
+    const c = freqColor(k / (SPRITES - 1), 0.2);
+    const s = document.createElement('canvas');
+    s.width = s.height = 64;
+    const g = s.getContext('2d');
+    const grad = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+    grad.addColorStop(0, rgba(mixc(c, [255, 255, 255], 0.5), 1));
+    grad.addColorStop(0.18, rgba(c, 0.9));
+    grad.addColorStop(0.45, rgba(c, 0.25));
+    grad.addColorStop(1, rgba(c, 0));
+    g.fillStyle = grad;
+    g.fillRect(0, 0, 64, 64);
+    sprites.push(s);
+  }
+}
+const spriteOf = (x) => sprites[Math.round(Math.max(0, Math.min(1, x)) * (SPRITES - 1))];
+
+// --- The test track, as a schedule: the signal below and the sound (PLAY SOUND) both follow it. ---
+const BPM = 120, BEAT = 60 / BPM, BAR = BEAT * 4, LOOP = BAR * 16;
+const BASS_NOTES = [41, 41, 44, 39, 41, 41, 46, 44]; // MIDI, one per 8th of a bar's first half, repeated
+const sectionOf = (t) => (Math.floor((t % LOOP) / BAR) >= 12 ? 'BREAKDOWN' : 'FULL');
+const hasKick = (t) => sectionOf(t) === 'FULL';
+
+// --- The synthetic SIGNAL: 64 bands (0..1) and the scalars the app's shaders get. ---
+const BANDS = 64;
+const target = new Float32Array(BANDS), bands = new Float32Array(BANDS);
+const sig = { level: 0, bass: 0, beat: 0, beatCount: 0, accent: 0, flow: 0 };
+let lastKick = -1, lastAccent = -10;
+const gauss = (x, m, s) => Math.exp(-0.5 * ((x - m) / s) ** 2);
+function stepSignal(t, dt) {
+  const beatT = t % BEAT, eighth = t % (BEAT / 2);
+  const kick = hasKick(t) ? Math.exp(-beatT / 0.12) : 0;
+  const beatIndex = Math.floor((t % BAR) / BEAT);
+  const snare = beatIndex % 2 === 1 ? Math.exp(-beatT / 0.18) : 0;
+  const hat = eighth > BEAT / 4 ? Math.exp(-(eighth - BEAT / 4) / 0.05) : 0;
+  const bassEnv = (hasKick(t) ? 0.55 : 0.2) * (0.6 + 0.4 * Math.exp(-eighth / 0.15));
+  const pad = (sectionOf(t) === 'BREAKDOWN' ? 0.45 : 0.22) * (0.7 + 0.3 * Math.sin(t * 0.7));
+  for (let b = 0; b < BANDS; b++) {
+    const x = b / (BANDS - 1);
+    target[b] = Math.min(1, 0.95 * kick * gauss(x, 0.06, 0.07) + bassEnv * gauss(x, 0.16, 0.06) + 0.7 * snare * (gauss(x, 0.45, 0.12) + 0.4 * gauss(x, 0.8, 0.15)) + 0.6 * hat * gauss(x, 0.88, 0.08) + pad * gauss(x, 0.35, 0.16) + 0.03);
+    // The app's balanced profile: quick up (15 ms), short fall (140 ms).
+    const tau = target[b] > bands[b] ? 0.015 : 0.14;
+    bands[b] += (target[b] - bands[b]) * (1 - Math.exp(-dt / tau));
+  }
+  let level = 0, bass = 0;
+  for (let b = 0; b < BANDS; b++) { level += bands[b]; if (b < 10) bass += bands[b]; }
+  sig.level = level / BANDS;
+  sig.bass = bass / 10;
+  // A beat on each kick; the accent at most 3 a second (the app's strobe limit), on strong ones.
+  const k = Math.floor(t / BEAT);
+  sig.beat *= Math.exp(-dt / 0.15);
+  if (hasKick(t) && k !== lastKick && beatT < 0.12) {
+    lastKick = k;
+    sig.beat = 1;
+    sig.beatCount++;
+    if (t - lastAccent >= 0.34) { sig.accent = 0.8; lastAccent = t; }
+    for (const d of directions) d.onBeat();
+  }
+  sig.accent *= Math.exp(-dt / 0.2);
+  sig.flow += dt * (0.25 + 1.75 * sig.level);
+}
+const bandAt = (x) => bands[Math.round(Math.max(0, Math.min(1, x)) * (BANDS - 1))];
+
+function rng(seed) { return () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646; }
+// --- A canvas that follows its box, at the screen's pixel ratio. ---
+function setup(id) {
+  const canvas = document.getElementById(id);
+  const ctx = canvas.getContext('2d');
+  const view = { canvas, ctx, w: 0, h: 0, visible: true };
+  const fit = () => {
+    const r = canvas.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
+    view.w = r.width; view.h = r.height;
+    canvas.width = Math.round(r.width * dpr); canvas.height = Math.round(r.height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  };
+  new ResizeObserver(() => { fit(); view.onResize?.(); }).observe(canvas);
+  new IntersectionObserver(([e]) => (view.visible = e.isIntersecting)).observe(canvas);
+  fit();
+  return view;
+}
+
+// --- Glyphs: cyberdeck's rain set (mirrored half-width katakana, digits, a few symbols), pre-drawn per colour. ---
+const GLYPHS = [...'ｦｱｳｴｵｶｷｹｺｻｼｽｾｿﾀﾂﾃﾅﾆﾇﾈﾊﾋﾎﾏﾐﾑﾒﾓﾔﾕﾗﾘﾜ0123456789Z:.=*+-<>|'];
+const RAMP = 12, CELL = 32;
+let atlases = [], headAtlas = null;
+/** One canvas of every glyph in colour `c` (CELL px squares, mirrored like cyberdeck's rain). */
+function atlasOf(c) {
+  const a = document.createElement('canvas');
+  a.width = GLYPHS.length * CELL; a.height = CELL;
+  const g = a.getContext('2d');
+  g.font = `${CELL - 6}px "MS Gothic", "Noto Sans Mono CJK JP", "JetBrains Mono", monospace`;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillStyle = rgba(c, 1);
+  GLYPHS.forEach((ch, i) => { g.save(); g.translate(i * CELL + CELL / 2, CELL / 2); g.scale(-1, 1); g.fillText(ch, 0, 1); g.restore(); });
+  return a;
+}
+function buildAtlases() {
+  atlases = Array.from({ length: RAMP }, (_, k) => atlasOf(freqColor(k / (RAMP - 1), 0.15)));
+  headAtlas = atlasOf(mixc(pal.bright, [255, 255, 255], 0.4));
+}
+const atlasFor = (band) => atlases[Math.round(Math.max(0, Math.min(1, band)) * (RAMP - 1))];
+/** Draws glyph `g` from atlas `at`, centred at x, y, `size` px, at `alpha`. */
+function glyph(ctx, at, g, x, y, size, alpha) {
+  if (alpha < 0.02) return;
+  ctx.globalAlpha = Math.min(1, alpha);
+  ctx.drawImage(at, g * CELL, 0, CELL, CELL, x - size / 2, y - size / 2, size, size);
+}
+
+// --- A column of rain: a head falling down its rows, a trail behind it, glyphs that flicker. ---
+/** A column at x, `cell` px a glyph, `rows` deep, listening to `band`. */
+function makeColumn(rand, x, cell, rows, band) {
+  return { x, cell, rows, band, head: -rand() * rows, len: 6, flare: 0, glyphs: Array.from({ length: rows + 40 }, () => Math.floor(rand() * GLYPHS.length)) };
+}
+/** Moves a column on by dt: loudness sets speed (rows/s) and trail length; the treble flickers glyphs. */
+function stepColumn(col, dt, rand, speedK) {
+  const e = bandAt(col.band);
+  col.len += (6 + 24 * e - col.len) * (1 - Math.exp(-dt / 0.3));
+  col.head += (3 + 30 * e) * speedK * dt;
+  col.flare *= Math.exp(-dt / 0.2);
+  if (col.head - col.len > col.rows) col.head = -rand() * 8;
+  const flicker = (0.5 + 6 * bandAt(0.9)) * dt;
+  for (let k = 0; k < 2; k++) if (rand() < flicker) col.glyphs[Math.floor(rand() * col.glyphs.length)] = Math.floor(rand() * GLYPHS.length);
+}
+/** Draws a column: the head bright (flaring), the trail fading in its band's colour. */
+function drawColumn(ctx, col, bright, sizeK = 1) {
+  const e = bandAt(col.band), at = atlasFor(col.band), size = col.cell * 1.05 * sizeK;
+  const top = Math.floor(col.head);
+  for (let i = 0; i <= col.len; i++) {
+    const row = top - i;
+    if (row < 0 || row >= col.rows) continue;
+    const y = (row + 0.5) * col.cell;
+    if (i === 0) {
+      const s = size * (1 + 0.5 * col.flare);
+      if (col.flare > 0.05) { ctx.globalAlpha = col.flare * 0.8 * bright; ctx.drawImage(spriteOf(col.band), col.x - s * 1.4, y - s * 1.4, s * 2.8, s * 2.8); }
+      glyph(ctx, headAtlas, col.glyphs[row], col.x, y, s, bright);
+    } else {
+      const fade = Math.pow(1 - i / (col.len + 1), 1.6);
+      glyph(ctx, at, col.glyphs[row], col.x, y, size, fade * (0.25 + 0.75 * e) * bright);
+    }
+  }
+}
+
+// --- A · CASCADE ---
+function cascade() {
+  const v = setup('a');
+  let cols = [], rand;
+  v.onResize = () => {
+    rand = rng(5);
+    const cell = 14, rows = Math.ceil(v.h / cell);
+    cols = Array.from({ length: Math.floor(v.w / cell) }, (_, i) => makeColumn(rand, (i + 0.5) * cell, cell, rows, rand()));
+  };
+  v.onResize();
+  return {
+    onBeat() { for (const c of cols) if (c.band < 0.3) c.flare = 1; },
+    draw(t, dt) {
+      if (!v.visible) return;
+      const { ctx, w, h } = v;
+      ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, w, h);
+      ctx.globalCompositeOperation = 'lighter';
+      for (const c of cols) { stepColumn(c, dt, rand, 1); drawColumn(ctx, c, 1); }
+      ctx.globalAlpha = 1;
+    },
+  };
+}
+
+// --- B · STRATA ---
+function strata() {
+  const v = setup('b');
+  let layers = [], rand;
+  // Far to near: glyph size, share of columns filled, brightness, speed.
+  const LAYERS = [ { cell: 9, fill: 0.9, bright: 0.4, speed: 0.55 }, { cell: 14, fill: 0.55, bright: 0.7, speed: 0.85 }, { cell: 22, fill: 0.3, bright: 1, speed: 1.2 } ];
+  v.onResize = () => {
+    rand = rng(9);
+    layers = LAYERS.map((L) => {
+      const rows = Math.ceil(v.h / L.cell), n = Math.floor(v.w / L.cell);
+      const cols = [];
+      for (let i = 0; i < n; i++) if (rand() < L.fill) cols.push(makeColumn(rand, (i + 0.5) * L.cell, L.cell, rows, rand()));
+      return { ...L, cols };
+    });
+  };
+  v.onResize();
+  return {
+    onBeat() { for (const L of layers) for (const c of L.cols) if (c.band < 0.3) c.flare = L.bright; },
+    draw(t, dt) {
+      if (!v.visible) return;
+      const { ctx, w, h } = v;
+      ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, w, h);
+      ctx.globalCompositeOperation = 'lighter';
+      for (const L of layers) for (const c of L.cols) { stepColumn(c, dt, rand, L.speed); drawColumn(ctx, c, L.bright); }
+      ctx.globalAlpha = 1;
+    },
+  };
+}
+
+// --- C · TUNNEL ---
+function tunnel() {
+  const v = setup('c');
+  let streams = [], rand;
+  const DEEP = 8, GAP = 0.32;
+  v.onResize = () => {
+    rand = rng(13);
+    streams = Array.from({ length: 110 }, () => ({ angle: rand() * 6.283, r: 0.55 + rand() * 0.9, z: rand() * DEEP, band: rand(), len: 6, flare: 0, glyphs: Array.from({ length: 40 }, () => Math.floor(rand() * GLYPHS.length)) }));
+  };
+  v.onResize();
+  let core = 0;
+  return {
+    onBeat() { core = 1; for (const s of streams) if (s.band < 0.3) s.flare = 1; },
+    draw(t, dt) {
+      if (!v.visible) return;
+      const { ctx, w, h } = v;
+      ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, w, h);
+      ctx.globalCompositeOperation = 'lighter';
+      const scale = Math.min(w, h * 1.8) * 0.32, cx = w / 2, cy = h / 2;
+      // The core: the level's glow, pulsing on the beat.
+      core *= Math.exp(-dt / 0.25);
+      const cs = (40 + 120 * sig.level + 90 * core) * scale / 300;
+      ctx.globalAlpha = 0.5 + 0.5 * core; ctx.drawImage(spriteOf(0.5), cx - cs, cy - cs, cs * 2, cs * 2);
+      for (const s of streams) {
+        const e = bandAt(s.band);
+        s.len += (5 + 18 * e - s.len) * (1 - Math.exp(-dt / 0.3));
+        s.z -= (0.5 + 3.5 * e) * dt;
+        s.flare *= Math.exp(-dt / 0.2);
+        if (s.z < 0.25) { s.z += DEEP; s.angle = rand() * 6.283; }
+        const dx = Math.cos(s.angle), dy = Math.sin(s.angle), at = atlasFor(s.band);
+        for (let i = 0; i <= s.len; i++) {
+          const z = s.z + i * GAP;
+          if (z > DEEP) break;
+          // Perspective: out from the centre as it nears; faded far off and right at the camera.
+          const px = cx + dx * s.r * scale / z, py = cy + dy * s.r * scale / z * 0.75;
+          const fog = Math.min(1, (DEEP - z) / 3) * Math.min(1, (z - 0.25) / 0.4);
+          const size = Math.min(70, 34 / z);
+          if (i === 0) {
+            const fs = size * (1 + 0.6 * s.flare);
+            if (s.flare > 0.05) { ctx.globalAlpha = s.flare * 0.7 * fog; ctx.drawImage(spriteOf(s.band), px - fs * 1.4, py - fs * 1.4, fs * 2.8, fs * 2.8); }
+            glyph(ctx, headAtlas, s.glyphs[0], px, py, fs, fog);
+          } else {
+            glyph(ctx, at, s.glyphs[i % s.glyphs.length], px, py, size, Math.pow(1 - i / (s.len + 1), 1.5) * (0.3 + 0.7 * e) * fog);
+          }
+        }
+        if (rand() < (0.5 + 5 * bandAt(0.9)) * dt) s.glyphs[Math.floor(rand() * s.glyphs.length)] = Math.floor(rand() * GLYPHS.length);
+      }
+      ctx.globalAlpha = 1;
+    },
+  };
+}
+
+// --- Sound (PLAY SOUND): the same track, scheduled on the audio clock, which then drives the visuals too. ---
+let audio = null, audioStart = 0, nextStep = 0;
+function playStep(ctx, at, step) {
+  const t = step * (BEAT / 4);
+  const out = ctx.destination;
+  const env = (node, peak, decay) => { const g = ctx.createGain(); g.gain.setValueAtTime(peak, at); g.gain.exponentialRampToValueAtTime(0.0008, at + decay); node.connect(g).connect(out); return g; };
+  const noise = () => { const b = ctx.createBuffer(1, ctx.sampleRate * 0.3, ctx.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; const s = ctx.createBufferSource(); s.buffer = b; return s; };
+  if (step % 4 === 0 && hasKick(t)) { const o = ctx.createOscillator(); o.frequency.setValueAtTime(130, at); o.frequency.exponentialRampToValueAtTime(45, at + 0.18); env(o, 0.9, 0.3); o.start(at); o.stop(at + 0.32); }
+  if (step % 8 === 4) { const n = noise(), f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 1800; n.connect(f); env(f, 0.35, 0.2); n.start(at); n.stop(at + 0.25); }
+  if (step % 4 === 2) { const n = noise(), f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 8000; n.connect(f); env(f, 0.12, 0.05); n.start(at); n.stop(at + 0.08); }
+  if (step % 2 === 0) {
+    const note = BASS_NOTES[(step / 2) % BASS_NOTES.length], o = ctx.createOscillator(), f = ctx.createBiquadFilter();
+    o.type = 'sawtooth'; o.frequency.value = 440 * 2 ** ((note - 69) / 12); f.type = 'lowpass'; f.frequency.value = 420; o.connect(f);
+    env(f, hasKick(t) ? 0.22 : 0.08, 0.22); o.start(at); o.stop(at + 0.25);
+  }
+}
+function schedule() {
+  if (!audio) return;
+  while (audioStart + nextStep * (BEAT / 4) < audio.currentTime + 0.3) { playStep(audio, audioStart + nextStep * (BEAT / 4), nextStep); nextStep++; }
+}
+document.getElementById('sound').addEventListener('click', async (e) => {
+  const btn = e.currentTarget;
+  try {
+    // One timeline: the track's time carries on unbroken when the audio clock takes over (and when it hands back).
+    const now = clock();
+    if (!audio) {
+      audio = new AudioContext();
+      audioStart = audio.currentTime - now;
+      nextStep = Math.ceil((now + 0.1) / (BEAT / 4));
+      btn.setAttribute('aria-pressed', 'true'); btn.textContent = 'STOP SOUND';
+    } else {
+      await audio.close(); audio = null;
+      base = now - performance.now() / 1000;
+      btn.setAttribute('aria-pressed', 'false'); btn.textContent = 'PLAY SOUND';
+    }
+  } catch { btn.textContent = 'SOUND BLOCKED'; }
+});
+
+// --- The palette picker. ---
+const sw = document.getElementById('swatches');
+PALETTES.forEach(([name, a, c, b], i) => {
+  const btn = document.createElement('button');
+  btn.type = 'button'; btn.className = 'swatch'; btn.setAttribute('aria-pressed', String(i === 0));
+  btn.innerHTML = `<span class="chip" style="background:linear-gradient(90deg, ${a} 0 50%, ${c} 50%)"></span>${name}`;
+  btn.addEventListener('click', () => {
+    pal = { accent: hex(a), cool: hex(c), bright: hex(b) };
+    buildSprites();
+    buildAtlases();
+    sw.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === btn)));
+  });
+  sw.appendChild(btn);
+});
+
+// --- The clock and the frame loop: one track time for all three (the audio clock while sound plays, heard time: less the output latency). ---
+let base = 0;
+const clock = () => (audio ? audio.currentTime - audioStart - (audio.outputLatency || 0) : performance.now() / 1000 + base);
+buildSprites();
+buildAtlases();
+const directions = [cascade(), strata(), tunnel()];
+let last = clock();
+const sectionEl = document.getElementById('section');
+let shownBar = -1;
+function frame() {
+  schedule();
+  const t = Math.max(0, clock()), dt = Math.min(0.1, Math.max(0, t - last));
+  last = t;
+  stepSignal(t, dt);
+  for (const d of directions) d.draw(t, dt);
+  const bar = Math.floor((t % LOOP) / BAR);
+  if (bar !== shownBar) { shownBar = bar; sectionEl.textContent = `BAR ${bar + 1} OF 16 · ${sectionOf(t)}`; }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

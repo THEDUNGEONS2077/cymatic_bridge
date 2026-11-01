@@ -2,11 +2,13 @@
  * src/scene/gl/program.ts: building shader programs, and the one
  * full-screen triangle every pass draws.
  *
- * Layer: scene (worker; WebGL 2, no DOM). A scene's fragment shader is
- * written without the SIGNAL include or the version line: sceneProgram puts
- * `#version 300 es` and signal.glsl in front, so every scene reads the music
- * the same way.
+ * Layer: scene (worker; WebGL 2, no DOM). A scene's shaders are written
+ * without the version line or the includes: these put `#version 300 es`
+ * and signal.glsl in front of each (so every scene reads the music the same
+ * way, in either stage), and draw.glsl after it in front of the fragment
+ * shader (its helpers need a fragment shader's derivatives).
  */
+import drawGlsl from '../shaders/draw.glsl?raw';
 import signalGlsl from '../shaders/signal.glsl?raw';
 import fullscreenVert from '../shaders/fullscreen.vert?raw';
 
@@ -38,9 +40,17 @@ export function linkProgram(gl: WebGL2RenderingContext, vert: string, frag: stri
   return program;
 }
 
-/** A full-screen pass's program: the full-screen triangle and `frag` with the SIGNAL include in front. */
+/** The fragment shader `frag` with the includes in front. */
+const withFragIncludes = (frag: string) => `#version 300 es\n${signalGlsl}\n${drawGlsl}\n${frag}`;
+
+/** A full-screen pass's program: the full-screen triangle and `frag` with the includes in front. */
 export function sceneProgram(gl: WebGL2RenderingContext, frag: string): WebGLProgram {
-  return linkProgram(gl, fullscreenVert, `#version 300 es\n${signalGlsl}\n${frag}`);
+  return linkProgram(gl, fullscreenVert, withFragIncludes(frag));
+}
+
+/** A scene's own geometry program: `vert` with signal.glsl in front, `frag` with both includes. */
+export function sceneGeometryProgram(gl: WebGL2RenderingContext, vert: string, frag: string): WebGLProgram {
+  return linkProgram(gl, `#version 300 es\n${signalGlsl}\n${vert}`, withFragIncludes(frag));
 }
 
 /** A full-screen pass's program without the SIGNAL include (the stage's own passes). */

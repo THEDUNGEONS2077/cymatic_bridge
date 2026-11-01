@@ -7,10 +7,10 @@
  * in the worker (scene/registry.ts maps these ids to engines). This is
  * cyberdeck's catalog.ts / registry.ts split.
  *
- * 0.1.0 has one scene, TEST: SIGNAL drawn plainly (bands, waterfall,
- * waveform, beats), to see the method working. It stays as a development
- * scene once the real ones arrive (PLEXUS in S4, then CODE RAIN EQ and
- * CYMATIC PLATE).
+ * PLEXUS (0.4.0, S4) is the first real scene: a flight through a plexus
+ * (the user's pick of the mock-ups: B2 FLIGHT). TEST, SIGNAL drawn plainly,
+ * stays as a development scene, listed last. CODE RAIN EQ and CYMATIC PLATE
+ * come next.
  */
 import { DEFAULT_PALETTE, type PaletteId } from './palettes';
 import { BALANCED, type ReactProfile } from './signal/signal';
@@ -54,6 +54,13 @@ export const SENSITIVITY_STEPS = [0.5, 0.75, 1, 1.25, 1.5, 2] as const;
 
 /** Every scene, in the order ← / → step through them. */
 export const SCENES: readonly SceneInfo[] = [
+  {
+    id: 'plexus',
+    name: 'PLEXUS',
+    defaults: { palette: DEFAULT_PALETTE, glow: 'high', sensitivity: 1, trails: 0.25, zoom: 1 },
+    profile: BALANCED,
+    trails: true,
+  },
   {
     id: 'test',
     name: 'TEST',

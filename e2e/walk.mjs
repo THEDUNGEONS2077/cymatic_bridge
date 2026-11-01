@@ -253,15 +253,18 @@ try {
     await page.screenshot({ path: join(shots, '05-settings.png') });
     const r = await page.evaluate(() => window.axe.run(document, { runOnly: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] }));
     if (r.violations.length) throw new Error(`axe, settings open: ${r.violations.map((v) => `${v.id}: ${v.nodes.length}`).join(', ')}`);
-    const want = { palette: 'laser', glow: 'max', sensitivity: 1.25, trails: 0.25, zoom: 0.9 };
-    const got = await page.evaluate(() => window.__cymatic.settings().scenes.test);
+    // The showing scene's own settings (PLEXUS: trails 0.25 → 0 with one "less").
+    const id = await stage('scene');
+    const own = () => page.evaluate((sid) => window.__cymatic.settings().scenes[sid], id);
+    const want = { palette: 'laser', glow: 'max', sensitivity: 1.25, trails: 0, zoom: 0.9 };
+    const got = await own();
     if (JSON.stringify(got) !== JSON.stringify(want)) throw new Error(`settings: ${JSON.stringify(got)}`);
     // Kept across a reload.
     await page.evaluate(() => window.__cymatic.flush());
     await page.reload();
     await page.waitForSelector('#scene-canvas[data-ready]');
     await page.waitForTimeout(300);
-    if (JSON.stringify(await page.evaluate(() => window.__cymatic.settings().scenes.test)) !== JSON.stringify(want)) throw new Error('lost on reload');
+    if (JSON.stringify(await own()) !== JSON.stringify(want)) throw new Error('lost on reload');
     if ((await page.evaluate(() => document.documentElement.dataset.palette)) !== 'laser') throw new Error('palette lost on reload');
     // EXPORT, RESET, then IMPORT the file back.
     await page.getByRole('button', { name: 'SETTINGS' }).click();
@@ -271,10 +274,10 @@ try {
     await download.saveAs(saved);
     if (!/^cymatic-bridge-settings-\d{4}-\d{2}-\d{2}\.json$/.test(download.suggestedFilename())) throw new Error(`file name ${download.suggestedFilename()}`);
     await panel.getByRole('button', { name: 'RESET SCENE' }).click();
-    if (await page.evaluate(() => window.__cymatic.settings().scenes.test)) throw new Error('RESET kept the scene’s settings');
+    if (await own()) throw new Error('RESET kept the scene’s settings');
     await panel.locator('input[type=file]').setInputFiles(saved);
     await page.getByRole('status').filter({ hasText: 'SETTINGS IMPORTED' }).waitFor();
-    if (JSON.stringify(await page.evaluate(() => window.__cymatic.settings().scenes.test)) !== JSON.stringify(want)) throw new Error('import didn’t restore');
+    if (JSON.stringify(await own()) !== JSON.stringify(want)) throw new Error('import didn’t restore');
     // A file that isn't ours is refused.
     await panel.locator('input[type=file]').setInputFiles({ name: 'x.json', mimeType: 'application/json', buffer: Buffer.from('{"app":"other"}') });
     await page.getByRole('status').filter({ hasText: 'COULDN’T IMPORT' }).waitFor();
@@ -292,11 +295,25 @@ try {
     await page.keyboard.press('Escape');
   });
 
-  await path('← / →: step scenes without errors', async () => {
+  await path('PLEXUS: opens first, draws, crossfades to TEST and back (← / →), survives a resize', async () => {
+    if ((await stage('scene')) !== 'plexus') throw new Error(`first scene: ${await stage('scene')}`);
+    const px = await stage('pixels');
+    if (px.lit < 0.003) throw new Error(`PLEXUS drew nothing: ${JSON.stringify(px)}`);
+    await page.screenshot({ path: join(shots, '06-plexus.png') });
     await page.keyboard.press('ArrowRight');
+    await page.waitForTimeout(300);
+    // Mid-crossfade: both draw, nothing breaks.
+    if ((await stage('scene')) !== 'test') throw new Error('→ didn’t reach TEST');
+    await page.waitForTimeout(700);
     await page.keyboard.press('ArrowLeft');
+    await page.waitForTimeout(900);
+    if ((await stage('scene')) !== 'plexus') throw new Error('← didn’t come back');
+    // A new shape builds a new field.
+    await page.setViewportSize({ width: 1000, height: 1000 });
     await page.waitForTimeout(800);
-    if ((await stage('scene')) !== 'test') throw new Error('wrong scene');
+    if ((await stage('pixels')).lit < 0.003) throw new Error('blank after a resize');
+    await page.setViewportSize({ width: 1600, height: 900 });
+    await page.waitForTimeout(500);
   });
 
   await path('hidden: nothing is drawn, and it resumes on return (R17)', async () => {

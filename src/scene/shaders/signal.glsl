@@ -1,8 +1,9 @@
 // src/scene/shaders/signal.glsl: the SIGNAL include, put in front of every
-// scene's fragment shader (scene/gl/program.ts).
+// scene shader, vertex and fragment alike (scene/gl/program.ts).
 //
 // Layer: scene shaders (GLSL ES 3.00). Everything a scene needs from the
-// music, and the drawing helpers every scene shares:
+// music, and the helpers that work in either stage (the fragment-only
+// drawing helpers, glowLine and dither, are in draw.glsl):
 //   - the signal texture (scene/gl/signalTexture.ts), 64 bands wide:
 //       row 0     the bands now (R = left, G = right), 0..1;
 //       row 1     the waveform (R), -1..1;
@@ -10,10 +11,10 @@
 //                 the newest at uHead;
 //   - the scalars as uniforms (lib/signal/layout.ts SCALAR);
 //   - the scene's settings (palette, glow, sensitivity, trails, zoom);
-//   - glowLine (cyberdeck's smooth glowing line: a bell-shaped core and a
-//     Gaussian glow, its width in px from the gradient's length, never
-//     fwidth), freqColor (frequency → the palette's pair, R22), accentFlash
-//     (the limited beat flash, R18) and dither (no banding in faint fades).
+//   - freqColor (frequency → the palette's pair, R22) and accentFlash (the
+//     limited beat flash, R18).
+// A vertex shader may read the signal too (PLEXUS sizes its links and nodes
+// by their bands there): texture reads work in both stages.
 
 precision highp float;
 precision highp int;
@@ -109,18 +110,6 @@ vec3 freqColor(float x, float energy) {
   return mix(c, uColBright, 0.35 * energy * energy);
 }
 
-// A smooth glowing line (cyberdeck's, PLAYBOOK 6.2): `f` is a field that's 0
-// on the line, `width` its core in CSS px. Its distance in device px comes
-// from the field's gradient length, so the line keeps its width at any
-// angle. Returns the core plus a Gaussian glow scaled by GLOW.
-float glowLine(float f, float width) {
-  float g = length(vec2(dFdx(f), dFdy(f)));
-  float d = abs(f) / max(g, 1e-6) / uDpr;           // CSS px from the line
-  float core = exp(-0.5 * pow(d / max(width * 0.5, 0.35), 2.0));
-  float glow = exp(-0.5 * pow(d / (width * 3.0 + 6.0 * uGlow), 2.0));
-  return core + glow * (0.18 + 0.5 * uGlow);
-}
-
 // The beat accent as a flash colour (R18: already limited to 3 a second, at most 0.8).
 vec3 accentFlash(float strength) {
   return uColBright * uAccent * strength;
@@ -137,10 +126,4 @@ float trailKeep() {
 // Screen position in CSS px, centred, zoomed (ZOOM: as if the screen were 1/zoom as big).
 vec2 sceneCoord(vec2 fragCoord) {
   return (fragCoord - 0.5 * uRes) / uDpr / uZoom;
-}
-
-// A tiny ordered noise (±0.5 of one 8-bit step), added last, so faint fades don't band.
-vec3 dither(vec2 fragCoord) {
-  float n = fract(52.9829189 * fract(dot(fragCoord, vec2(0.06711056, 0.00583715))));
-  return vec3((n - 0.5) / 255.0);
 }

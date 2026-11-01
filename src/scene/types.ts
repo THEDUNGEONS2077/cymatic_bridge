@@ -33,6 +33,8 @@ export interface SceneFrame {
   w: number;
   h: number;
   dpr: number;
+  /** The scene's ZOOM (1 = as designed; also uZoom), for scenes that scale on the CPU side. */
+  zoom: number;
   /** Real time (s) and this frame's step (s). */
   time: number;
   dt: number;

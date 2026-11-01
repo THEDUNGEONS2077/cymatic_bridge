@@ -79,6 +79,8 @@ export type ToWorker =
 /** What the worker sends back. */
 export type FromWorker =
   | { type: 'ready' }
+  /** A SIGNAL frame was handled (drawn, or dropped while stopped): the page may post the next (host.ts flow control). */
+  | { type: 'drawn' }
   | { type: 'error'; message: string }
   | { type: 'probe'; id: number; result: PixelsProbe | StatsProbe };
 

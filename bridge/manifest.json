@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "CYMATIC TITLE BRIDGE",
+  "version": "1.0.0",
+  "description": "Lets cymatic_bridge show the title of the YouTube or YouTube Music tab you share with it. No permissions; it only labels the tab you share.",
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/*", "https://music.youtube.com/*"],
+      "js": ["title.js"],
+      "run_at": "document_idle",
+      "all_frames": false
+    }
+  ]
+}

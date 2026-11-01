@@ -90,6 +90,7 @@ html[data-idle] * {
 }
 .title {
   display: block;
+  min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -196,4 +197,62 @@ html[data-idle] * {
   overflow: hidden;
   clip-path: inset(50%);
   white-space: nowrap;
+}
+
+/* The bar's middle: the title, and the title bridge's offer beside it. */
+.topbar-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s-sm);
+}
+.btn-quiet {
+  color: var(--text-dim);
+  border-color: var(--line);
+}
+.btn-link {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+/* A panel under the bar (the title bridge's steps): centred, a lit frame. */
+.panel {
+  position: fixed;
+  z-index: 12;
+  top: 44px;
+  left: 50%;
+  translate: -50% 0;
+  width: min(480px, calc(100vw - 32px));
+  padding: var(--s-md) var(--s-lg);
+  background: var(--surface);
+  border: var(--hairline) solid var(--line-lit);
+  box-shadow: var(--glow-faint);
+}
+.panel-title {
+  margin: 0 0 var(--s-sm);
+  font-size: var(--fs-meta);
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  text-shadow: var(--glow-text-faint);
+}
+.panel-text {
+  margin: 0 0 var(--s-sm);
+  color: var(--text-bright);
+}
+.panel-dim {
+  color: var(--text);
+}
+.panel-steps {
+  margin: 0 0 var(--s-md);
+  padding-left: var(--s-lg);
+  color: var(--text);
+}
+.panel-steps li {
+  margin-bottom: var(--s-xs);
+}
+.panel-actions {
+  display: flex;
+  gap: var(--s-sm);
+  flex-wrap: wrap;
 }

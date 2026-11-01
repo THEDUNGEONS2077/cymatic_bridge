@@ -9,7 +9,10 @@
  * and EXPORT / IMPORT (S3). No snapshots or profiles.
  *
  * Shape (version 1):
- *   { v: 1, scene, hudHidden, scenes: { [sceneId]: SceneSettings } }
+ *   { v: 1, scene, hudHidden, bridgeOffer, scenes: { [sceneId]: SceneSettings } }
+ * `bridgeOffer` came in 0.2.0 without a version bump: a new field is just
+ * normalized with its default (cyberdeck's rule), and older documents read
+ * as offering.
  * A scene with no entry uses its defaults (lib/scenes.ts); only changed
  * scenes are stored.
  */
@@ -26,13 +29,15 @@ export interface Settings {
   scene: string;
   /** Is the HUD hidden (H)? */
   hudHidden: boolean;
+  /** Does the bar offer the title bridge when a shared tab has none? (DON'T OFFER AGAIN turns it off.) */
+  bridgeOffer: boolean;
   /** Each scene's own settings, where changed. */
   scenes: Record<string, SceneSettings>;
 }
 
 /** A first visit's settings. */
 export function defaultSettings(): Settings {
-  return { v: SETTINGS_VERSION, scene: SCENES[0]!.id, hudHidden: false, scenes: {} };
+  return { v: SETTINGS_VERSION, scene: SCENES[0]!.id, hudHidden: false, bridgeOffer: true, scenes: {} };
 }
 
 /** The value in `steps` nearest to `v` (a number from an older or edited file). */
@@ -68,6 +73,7 @@ export function normalizeSettings(raw: unknown): Settings {
     v: SETTINGS_VERSION,
     scene: typeof r.scene === 'string' && r.scene.length <= 64 ? r.scene : d.scene,
     hudHidden: typeof r.hudHidden === 'boolean' ? r.hudHidden : d.hudHidden,
+    bridgeOffer: typeof r.bridgeOffer === 'boolean' ? r.bridgeOffer : d.bridgeOffer,
     scenes,
   };
 }

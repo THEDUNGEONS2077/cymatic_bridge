@@ -21,4 +21,6 @@ export default tseslint.config(
     },
   },
   { files: ['**/*.{js,mjs}'], languageOptions: { globals: { ...globals.node, ...globals.browser } } },
+  // The title bridge's content script runs in a web page (a YouTube tab): browser globals only.
+  { files: ['bridge/**/*.js'], languageOptions: { globals: { ...globals.browser } } },
 );

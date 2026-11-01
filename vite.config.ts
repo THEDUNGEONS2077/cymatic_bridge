@@ -6,7 +6,9 @@
  *
  * The service-worker and preload plugins are cyberdeck_terminal's, renamed:
  * the page opens from a stored copy of the build, and the app's chunk is
- * fetched with the first files.
+ * fetched with the first files. The bridge plugin (cyberdeck's too) packs
+ * the title bridge extension (bridge/) as cymatic-bridge.zip next to the
+ * page, for the bar's GET TITLE BRIDGE.
  */
 import react from '@vitejs/plugin-react';
 import { createHash } from 'node:crypto';
@@ -15,6 +17,8 @@ import { join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type { Plugin } from 'vite';
 import { defineConfig } from 'vitest/config';
+
+import { makeZip } from './scripts/zip.ts';
 
 // The version (package.json) and build number (the newest CHANGELOG.md entry), shown in diagnostics and in exports.
 const pkg = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf8')) as { version: string };
@@ -139,9 +143,39 @@ function preloadApp(): Plugin {
   };
 }
 
+/** Packs every file in bridge/ inside a `cymatic-bridge/` folder (so unzipping makes one folder to load in chrome://extensions). */
+function packBridge(): Buffer {
+  const dir = fileURLToPath(new URL('./bridge', import.meta.url));
+  const entries: { name: string; data: Buffer }[] = [];
+  for (const name of readdirSync(dir).sort()) {
+    if (statSync(join(dir, name)).isFile()) entries.push({ name: `cymatic-bridge/${name}`, data: readFileSync(join(dir, name)) });
+  }
+  return makeZip(entries);
+}
+
+/**
+ * cymatic-bridge.zip next to the page: emitted as a build asset (so it's in
+ * dist/ before the service worker lists the files), and served fresh by the
+ * dev server too (packed on each request), so GET TITLE BRIDGE works there.
+ */
+function bridgeZip(): Plugin {
+  return {
+    name: 'cymatic-bridge-zip',
+    generateBundle() {
+      this.emitFile({ type: 'asset', fileName: 'cymatic-bridge.zip', source: packBridge() });
+    },
+    configureServer(server) {
+      server.middlewares.use(`${base}cymatic-bridge.zip`, (_req, res) => {
+        res.setHeader('Content-Type', 'application/zip');
+        res.end(packBridge());
+      });
+    },
+  };
+}
+
 export default defineConfig({
   base,
-  plugins: [react(), preloadApp(), serviceWorker()],
+  plugins: [react(), preloadApp(), bridgeZip(), serviceWorker()],
   define: { __APP_VERSION__: JSON.stringify(pkg.version), __APP_BUILD__: String(build) },
   resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
   // ES2022: the entry point awaits persistence before rendering (top-level await).

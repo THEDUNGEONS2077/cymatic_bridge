@@ -2,6 +2,14 @@
 
 Each release, in the user's words where they gave them. The build number counts every release.
 
+## 0.2.0 (build 3)
+**S2: the title bridge.** The shared tab's title in the bar (R9, R10).
+- **CYMATIC TITLE BRIDGE** (`bridge/`, 1.0.0) is a Chrome extension with no permissions. It runs only on YouTube and YouTube Music. It labels the tab with its title through Chrome's capture handle, readable only by this page's addresses, and labels it again whenever the title changes (the next video, the next song in a mix).
+- **The page** reads the label from the shared tab's video track, so the title is always the tab you shared (R6), even after "Share this tab instead". It shows the video title only: YouTube's suffix and the notification count go, and YouTube's home page shows nothing.
+- **Without the bridge,** the bar offers **GET TITLE BRIDGE**, which opens the install steps and the zip download. DON'T OFFER AGAIN turns the offer off. An older bridge gets **UPDATE TITLE BRIDGE**.
+- **Fix:** at most one SIGNAL frame is now with the drawing worker at a time. Since 0.1.1 (drawn as they arrive), frames could pile up when the worker fell behind. The visuals then lagged more and more, and stop, probes and context restores waited behind them.
+- **New tests:** `npm run e2e:bridge` loads the real extension against a fake YouTube page. The walk checks the offer, the panel (axe clean) and the zip.
+
 ## 0.1.1 (build 2)
 **On time.** The user, trying S1 on YouTube: "it doesn't really feel on time": the visuals lagged the sound. They chose to keep the sound playing from the YouTube tab, rather than routing it through the page with a delay. So every lag the page controls was cut. Afterwards: "it's good".
 - **Shorter spectrum window:** fftSize 4096 → 2048, about 21 ms less lag.

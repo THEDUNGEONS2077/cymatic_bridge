@@ -2,14 +2,18 @@
  * src/app/TopBar.tsx: the HUD: one thin full-width bar along the top (R11).
  *
  * Layer: UI. Left: the brand, then LISTEN (or SWITCH and STOP while
- * listening). Middle: the shared tab's title (R9; filled by the title bridge
- * in S2, empty until then). Right: the scene, with ‹ › to step through them.
+ * listening). Middle: the shared tab's title (R9, from the title bridge).
+ * While listening to a tab without the bridge, the middle offers GET TITLE
+ * BRIDGE (unless the user said DON'T OFFER AGAIN); with an old bridge,
+ * UPDATE TITLE BRIDGE, beside the title. Either opens BridgePanel. Right:
+ * the scene, with ‹ › to step through them.
  * SETTINGS joins on the right in S3. Every control is a real button with a
  * name a screen reader reads, at least 24 px tall (cyberdeck's axe rules).
  */
 import { listen, stopListening } from '@/audio/listen';
 import { findScene } from '@/lib/scenes';
 import { useSettings } from '@/store/instance';
+import { liveStore } from '@/store/live';
 
 import { useLive } from './useLive';
 
@@ -17,6 +21,9 @@ import { useLive } from './useLive';
 export function TopBar() {
   const capture = useLive((s) => s.capture);
   const title = useLive((s) => s.title);
+  const bridge = useLive((s) => s.bridge);
+  const offer = useSettings((s) => s.settings.bridgeOffer);
+  const openBridge = () => liveStore.getState().setPanel('bridge');
   const scene = useSettings((s) => s.settings.scene);
   const stepScene = useSettings((s) => s.stepScene);
   const name = findScene(scene).name;
@@ -40,8 +47,20 @@ export function TopBar() {
           </button>
         )}
       </div>
-      <div className="topbar-title" aria-live="polite">
-        {title ? <span className="title">{title}</span> : null}
+      <div className="topbar-title">
+        <span className="title" aria-live="polite">
+          {title ?? ''}
+        </span>
+        {capture === 'live' && bridge === 'none' && offer ? (
+          <button type="button" className="btn btn-quiet" onClick={openBridge} title="Show the shared tab’s title">
+            GET TITLE BRIDGE
+          </button>
+        ) : null}
+        {capture === 'live' && bridge === 'old' ? (
+          <button type="button" className="btn btn-quiet" onClick={openBridge}>
+            UPDATE TITLE BRIDGE
+          </button>
+        ) : null}
       </div>
       <div className="topbar-right">
         <button type="button" className="btn btn-icon" onClick={() => stepScene(-1)} aria-label="Previous scene" title="Previous scene (←)">

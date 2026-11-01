@@ -144,7 +144,7 @@ The user, on S1: "it doesn't really feel on time". The visuals lagged the sound.
 - **A scene (`scene/types.ts`)** is a factory: `create(gl)` returns `{ draw(frame), destroy() }`. `frame.bind(program)` sets every uniform the include declares. TEST (`scenes/test/`) is the whole pattern in 30 lines.
 
 ## 7. The page: HUD, keys, meter
-- **TopBar** (R11): the brand, LISTEN (or SWITCH and STOP), the title (S2), and the scene with ‹ ›. Buttons are real buttons with names, at least 24 px.
+- **TopBar** (R11): the brand, LISTEN (or SWITCH and STOP), the title (§ 12) or the bridge's offer, and the scene with ‹ ›. Buttons are real buttons with names, at least 24 px.
 - **Keys** (R12, `app/useKeys.ts`): F fullscreen, H HUD, ← / → scenes, D meter. Modifier keys and keys typed into fields are ignored.
 - **Fullscreen** follows the browser's own state (`fullscreenchange`). Fullscreen shows the visual only. With the HUD out of sight, the pointer hides after 2 s still.
 - **The meter** (D, `app/Meter.tsx`) is a Canvas 2D overlay:
@@ -182,7 +182,7 @@ The user, on S1: "it doesn't really feel on time". The visuals lagged the sound.
 | TEST, software-rendered, 1600×900 | 14–19 fps (no GPU here; not the user's number) |
 
 ## 10. Testing
-- **`npm run check`:** typecheck, lint and Vitest. There are 30 tests:
+- **`npm run check`:** typecheck, lint and Vitest. There are 39 tests:
   - SIGNAL on synthetic analyser frames:
     - a sine lands in its band;
     - the tilt;
@@ -196,6 +196,11 @@ The user, on S1: "it doesn't really feel on time". The visuals lagged the sound.
     - flow never goes back.
   - Settings: normalizing, the version-1 fixture, refusals, boot keeping damaged data, the debounced save.
   - The palettes' contrast, and the scene list.
+  - The title bridge:
+    - cleaning titles;
+    - reading labels;
+    - comparing versions;
+    - the bridge files in step: one version in three places, no permissions, YouTube only, the page's origins permitted.
 - **`npm run e2e`** (`e2e/walk.mjs`): 9 paths on the built page.
   - Paths:
     - idle before LISTEN;
@@ -209,10 +214,40 @@ The user, on S1: "it doesn't really feel on time". The visuals lagged the sound.
     - a lost context restored;
     - the speed report.
   - The music is a routed test tab titled CB-TEST: WebAudio kicks over a 440 Hz tone. The LISTEN path also reports the **beat latency**: each kick's time at the speakers (`getOutputTimestamp`) against when the page saw its beat. `--auto-select-tab-capture-source-by-title` answers the picker.
+  - **`npm run e2e:bridge`** (`e2e/bridge.mjs`): Chromium with the real unpacked bridge and a persistent temporary profile (extensions need one). A fake `https://www.youtube.com/watch` page is routed (nothing reaches YouTube). It checks:
+    - LISTEN shows its cleaned title;
+    - a title changed in place shows at once;
+    - YouTube's home title shows nothing;
+    - STOP clears it.
+
+    It runs headless: titles need no sound.
   - **It runs headed when there's a display.** Headless Chrome captures a tab's sound as silence (PLAYBOOK § 2). Covered by another window on the Windows desktop, WSLg's windows run at about 1 frame a second, and the sound paths fail; run it with nothing in front of it.
 
 ## 11. Known limits and next steps
 - **There's one scene (TEST) and one palette (UV).** S3 brings the four palettes and the settings drop-down; S4 brings PLEXUS.
-- **No title yet:** S2's title bridge sets the shared YouTube tab's capture handle, which the page reads from the video track.
+- **The title bridge must be loaded unpacked** (Developer mode); it isn't in the Chrome Web Store.
 - **GPU time isn't measured** (Chrome hides the timer query); the meter's fps and draw p95 are the guide.
 - **Mono tabs:** both analysers hear the one channel, so balance stays centred.
+
+## 12. The title bridge
+A webpage can't read another tab's title, so the shared tab names itself.
+- **The extension** (`bridge/`, MV3, version 1.0.0) is one content script (`title.js`) on `https://www.youtube.com/*` and `https://music.youtube.com/*`, with no permissions. It sets Chrome's **capture handle**:
+  ```
+  navigator.mediaDevices.setCaptureHandleConfig({
+    handle: JSON {app: 'cymatic_bridge', v, title},
+    exposeOrigin: false,
+    permittedOrigins: PERMITTED,
+  })
+  ```
+  It sets it again whenever `<head>` changes, because YouTube changes the title in place for the next video or song, and can replace the `<title>` element itself. An unchanged label isn't set again.
+- **Only `PERMITTED` origins can read the label:** the published page, 127.0.0.1:5173 (dev), 8173 (the walk) and 8175 (the bridge test). Any other page capturing the tab sees no handle.
+- **The page** (`audio/listen.ts`) reads `videoTrack.getCaptureHandle()` when a share starts, and on every `capturehandlechange`. That covers a title change, and "Share this tab instead" moving to a tab with another label or none.
+  - `lib/bridge.ts` checks the label and cleans the title: YouTube's " - YouTube" / " - YouTube Music" suffix and the "(N) " count go, and a bare "YouTube" (home, search) becomes empty.
+  - It also compares the bridge's version with `BRIDGE_VERSION`.
+  - The live store then holds the title and `bridge`: none, ok or old.
+- **Why a capture handle, not messaging:** the label travels with the shared tab's own track, so the title is always that tab's, even with two YouTube tabs open (R6). No ids, no tab permissions, and no messages between page and extension are needed. It was checked first in a probe (2026-11-01): a content script's isolated world can set it, and the capturing page sees each change.
+- **The offer:**
+  - While listening to a tab with no label, the bar offers GET TITLE BRIDGE. That can mean no bridge, or a tab that isn't YouTube; the page can't tell which.
+  - An old label gets UPDATE TITLE BRIDGE instead.
+  - Either opens `app/BridgePanel.tsx`: what it does, the zip (`cymatic-bridge.zip`, built next to the page by the `bridgeZip` Vite plugin and served by the dev server too), and the steps to load it unpacked.
+  - DON'T OFFER AGAIN sets `settings.bridgeOffer` to false. It's a new field with no version bump: older documents read as true.

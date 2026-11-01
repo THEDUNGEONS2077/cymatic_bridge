@@ -22,7 +22,14 @@
  *     the worker's frame ring, and steps back to SAFE_DPR if frames were slow
  *     (remembered per scene, a start-up hint);
  *   - gives the browser tests and the signal meter a probe
- *     (window.__cymatic.stage, sceneStats).
+ *     (window.__cymatic.stage, sceneStats);
+ *   - keeps at most one SIGNAL frame in flight (0.2.0). The worker draws
+ *     each frame as it arrives (0.1.1), and answers `drawn`; until then a
+ *     newer frame waits here, replacing any older one waiting. Without this,
+ *     a worker slower than the page (a scene too heavy for the GPU, or
+ *     headless Chrome's uncapped frames) let frames queue up: the visuals
+ *     fell further and further behind, and every other message (stop,
+ *     probes) waited behind them.
  */
 import { findPalette } from '@/lib/palettes';
 import { findScene, type SceneSettings } from '@/lib/scenes';
@@ -44,6 +51,9 @@ let worker: Worker | null = null;
 let sceneId = '';
 let size: StageSize | null = null;
 let failed: string | null = null;
+/** Flow control: is a SIGNAL frame with the worker, and the newest one waiting to go (a copy). */
+let inFlight = false;
+let waitingSignal: Float32Array | null = null;
 let onFailure: (message: string) => void = () => {};
 // Probes waiting for their answers, by id.
 const waiting = new Map<number, (result: never) => void>();
@@ -138,7 +148,15 @@ export function startStage(id: string, settings: SceneSettings, failure: (messag
   sceneId = findScene(id).id;
   worker = new SceneWorker({ name: 'scene' });
   worker.onmessage = ({ data: m }: MessageEvent<FromWorker>) => {
-    if (m.type === 'ready') {
+    if (m.type === 'drawn') {
+      inFlight = false;
+      if (waitingSignal) {
+        const next = waitingSignal;
+        waitingSignal = null;
+        inFlight = true;
+        send({ type: 'signal', signal: next });
+      }
+    } else if (m.type === 'ready') {
       canvas.dataset.ready = '';
       guard();
     } else if (m.type === 'error') fail(`THE SCENE COULDN’T DRAW · ${m.message.slice(0, 120)}`);
@@ -177,8 +195,19 @@ export function showScene(id: string, settings: SceneSettings): void {
   } else send({ type: 'look', look: lookOf(settings) });
 }
 
-/** Posts this frame's SIGNAL to the stage (a copy: the engine reuses its array). */
+/**
+ * Posts this frame's SIGNAL to the stage (posting copies it: the engine
+ * reuses its array). If the last one hasn't been drawn yet, this one waits,
+ * replacing any older one waiting (only the newest matters).
+ */
 export function postSignal(signal: Signal): void {
+  if (!worker) return;
+  if (inFlight) {
+    if (!waitingSignal) waitingSignal = new Float32Array(signal.length);
+    waitingSignal.set(signal);
+    return;
+  }
+  inFlight = true;
   send({ type: 'signal', signal });
 }
 

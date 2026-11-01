@@ -22,9 +22,11 @@ The contrast rule: every text colour passes WCAG AA (4.5:1) on bg, surface and r
 - **The bar:** 36 px tall, full width, black at 72% with a lit lower edge (`--line-lit`) and the softest glow.
   - The brand `<cymatic_bridge>` sits in the accent.
   - Buttons have cyberdeck's lit frame and are 24 px tall. LISTEN is in the accent.
-  - The title sits in the middle, bright, uppercase and cut with an ellipsis (S2).
+  - The title sits in the middle, bright, uppercase and cut with an ellipsis: the video title only (R9).
+  - While listening to a tab without the title bridge, a quiet button sits in the middle instead: GET TITLE BRIDGE (dim text, a plain frame), or UPDATE TITLE BRIDGE beside an old bridge's title.
   - The scene name is on the right between ‹ ›.
 - **The bar takes the showing scene's palette.**
+- **The bridge panel:** under the bar, centred, 480 px wide, on the surface colour with a lit frame. It has an accent heading, the explanation in bright text, the privacy line in text colour, and numbered steps. Its buttons are DOWNLOAD ZIP (primary), DON'T OFFER AGAIN and CLOSE. Esc closes it.
 - **Notices:** one line under the bar, on the surface colour with a lit frame, for 6 s.
 - **The meter (D):** bottom left, 360 × 150 px of bars plus a line of figures in 10 px text.
 

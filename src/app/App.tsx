@@ -8,7 +8,8 @@
  * the HUD's palette and the start-up hint follow.
  *
  * What shows: the top bar, unless the HUD is hidden (H) or the page is
- * fullscreen (F: only the visual, R12). The meter (D) and a notice show
+ * fullscreen (F: only the visual, R12), and under it the title bridge's
+ * panel when open. The meter (D) and a notice show
  * either way. With the HUD out of sight the pointer hides when still.
  */
 import { useEffect } from 'react';
@@ -21,6 +22,7 @@ import { applyPalette } from '@/palette';
 import { showScene } from '@/scene/host';
 import { useSettings } from '@/store/instance';
 
+import { BridgePanel } from './BridgePanel';
 import { useFullscreenSync, useIdleCursor } from './fullscreen';
 import { Meter } from './Meter';
 import { TopBar } from './TopBar';
@@ -33,6 +35,7 @@ export function App() {
   const immersive = useLive((s) => s.immersive);
   const meter = useLive((s) => s.meter);
   const notice = useLive((s) => s.notice);
+  const panel = useLive((s) => s.panel);
   const hudShown = !settings.hudHidden && !immersive;
 
   useKeys();
@@ -52,6 +55,7 @@ export function App() {
   return (
     <>
       {hudShown ? <TopBar /> : null}
+      {hudShown && panel === 'bridge' ? <BridgePanel /> : null}
       {notice ? (
         <p className={`notice${hudShown ? '' : ' notice-top'}`} role="status">
           {notice}

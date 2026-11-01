@@ -10,19 +10,32 @@ import { createStore } from 'zustand/vanilla';
 /** Where the capture is: off (LISTEN shows), asking (Chrome's picker is open), or live. */
 export type CaptureState = 'off' | 'asking' | 'live';
 
+/**
+ * The title bridge, as seen on the shared tab: none (no label: no bridge,
+ * or not a YouTube tab), ok, or old (older than this page expects: the bar
+ * offers the update). Null when nothing is shared.
+ */
+export type BridgeState = 'none' | 'ok' | 'old' | null;
+
 /** The live store's state and actions. */
 export interface LiveState {
   capture: CaptureState;
-  /** The shared tab's title (S2, the title bridge), or null. */
+  /** The shared tab's title (from the title bridge), or null. */
   title: string | null;
+  /** The title bridge on the shared tab. */
+  bridge: BridgeState;
   /** Is the page fullscreen (F)? Follows the browser's own state. */
   immersive: boolean;
   /** Is the signal meter open (D)? */
   meter: boolean;
   /** A short notice under the HUD (null: none). */
   notice: string | null;
+  /** The panel open under the bar (the title bridge's install steps), or null. */
+  panel: 'bridge' | null;
+  setPanel(p: 'bridge' | null): void;
   setCapture(c: CaptureState): void;
-  setTitle(t: string | null): void;
+  /** The shared tab's label changed (or the share ended: both null). */
+  setLabel(title: string | null, bridge: BridgeState): void;
   setImmersive(on: boolean): void;
   toggleMeter(): void;
   /** Shows `text` for NOTICE_MS (a newer notice replaces it). */
@@ -38,11 +51,14 @@ let noticeTimer: ReturnType<typeof setTimeout> | undefined;
 export const liveStore = createStore<LiveState>()((set) => ({
   capture: 'off',
   title: null,
+  bridge: null,
   immersive: false,
   meter: false,
   notice: null,
+  panel: null,
+  setPanel: (panel) => set({ panel }),
   setCapture: (capture) => set({ capture }),
-  setTitle: (title) => set({ title }),
+  setLabel: (title, bridge) => set({ title, bridge }),
   setImmersive: (immersive) => set({ immersive }),
   toggleMeter: () => set((s) => ({ meter: !s.meter })),
   showNotice: (text) => {

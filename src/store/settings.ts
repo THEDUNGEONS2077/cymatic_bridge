@@ -25,6 +25,8 @@ export interface SettingsState {
   setScene(id: string): void;
   /** Hides or shows the HUD (H). */
   setHudHidden(hidden: boolean): void;
+  /** Turns the title bridge's offer on or off. */
+  setBridgeOffer(on: boolean): void;
   /** Writes a pending save now (leaving the page). */
   flush(): Promise<void>;
 }
@@ -55,6 +57,7 @@ export function createSettingsStore(kv: KV, initial: Settings, onError: (e: unkn
     stepScene: (step) => change((s) => ({ ...s, scene: stepScene(s.scene, step) })),
     setScene: (id) => change((s) => ({ ...s, scene: id })),
     setHudHidden: (hidden) => change((s) => ({ ...s, hudHidden: hidden })),
+    setBridgeOffer: (on) => change((s) => ({ ...s, bridgeOffer: on })),
     flush: write,
   }));
   return store;

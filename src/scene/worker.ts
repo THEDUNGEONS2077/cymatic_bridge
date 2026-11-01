@@ -77,6 +77,8 @@ scope.onmessage = ({ data: m }) => {
       break;
     case 'signal':
       stage?.setSignal(m.signal);
+      // Always answered, drawn or not, so the page never waits for good (host.ts flow control).
+      scope.postMessage({ type: 'drawn' });
       break;
     case 'scene':
       stage?.setScene(m.scene, m.look, m.trails);

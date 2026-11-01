@@ -141,10 +141,23 @@ try {
     if (r.violations.length) throw new Error(r.violations.map((v) => `${v.id}: ${v.nodes.length}`).join(', '));
   });
 
-  await path('LISTEN, then STOP: the test tab is shared, STOP ends it and the scene goes idle', async () => {
+  await path('LISTEN, then STOP: the test tab is shared, the bar offers the title bridge, STOP ends it and the scene goes idle', async () => {
     await page.bringToFront();
     await page.getByRole('button', { name: 'LISTEN' }).click();
-    await page.getByRole('button', { name: 'STOP' }).click({ timeout: 10000 });
+    await page.getByRole('button', { name: 'STOP' }).waitFor({ timeout: 10000 });
+    // No title bridge here: the bar offers it, its panel opens, the zip is there, Esc closes it.
+    await page.getByRole('button', { name: 'GET TITLE BRIDGE' }).click();
+    await page.getByRole('dialog', { name: 'TITLE BRIDGE' }).waitFor();
+    const zip = await page.getByRole('link', { name: 'DOWNLOAD ZIP' }).getAttribute('href');
+    const res = await page.request.get(new globalThis.URL(zip, PAGE).href);
+    if (!res.ok() || (await res.body()).length < 1000) throw new Error(`zip: ${res.status()}`);
+    await page.screenshot({ path: join(shots, '02-bridge-panel.png') });
+    // axe with the panel open (axe was loaded by the axe path).
+    const r = await page.evaluate(() => window.axe.run(document, { runOnly: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] }));
+    if (r.violations.length) throw new Error(`axe, panel open: ${r.violations.map((v) => `${v.id}: ${v.nodes.length}`).join(', ')}`);
+    await page.keyboard.press('Escape');
+    await page.getByRole('dialog').waitFor({ state: 'detached' });
+    await page.getByRole('button', { name: 'STOP' }).click();
     await page.getByRole('button', { name: 'LISTEN' }).waitFor();
     await until((s) => s.idle > 0.9, 6000, 'idle after STOP');
   });
@@ -190,7 +203,7 @@ try {
     // 4 s at 120 BPM is 8 kicks; allow a missed one or two at the edges.
     if (s.beatCount - before < 6) throw new Error(`beats: ${s.beatCount - before} in 4 s`);
     if (s.bass <= s.treble) throw new Error(`bass ${s.bass} ≤ treble ${s.treble}`);
-    await page.screenshot({ path: join(shots, '02-listening.png') });
+    await page.screenshot({ path: join(shots, '03-listening.png') });
     for (const t of tones) await t.close();
     // Closing the shared tab ends the share: back to LISTEN, easing into idle (R7).
     await page.getByRole('button', { name: 'LISTEN' }).waitFor({ timeout: 5000 });
@@ -203,7 +216,7 @@ try {
     await page.waitForTimeout(1200);
     const text = await page.locator('.meter-figures').textContent();
     if (!/FPS/.test(text ?? '')) throw new Error(`figures: ${text}`);
-    await page.screenshot({ path: join(shots, '03-meter.png') });
+    await page.screenshot({ path: join(shots, '04-meter.png') });
     await page.keyboard.press('d');
     await page.getByRole('complementary', { name: 'Signal meter' }).waitFor({ state: 'detached' });
   });

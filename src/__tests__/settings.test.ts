@@ -19,7 +19,7 @@ import { createSettingsStore, SAVE_DEBOUNCE_MS } from '@/store/settings';
 describe('the settings document', () => {
   it('starts at the first scene, the HUD shown, no scene changed', () => {
     const d = defaultSettings();
-    expect(d).toEqual({ v: SETTINGS_VERSION, scene: DEFAULT_SCENE, hudHidden: false, scenes: {} });
+    expect(d).toEqual({ v: SETTINGS_VERSION, scene: DEFAULT_SCENE, hudHidden: false, bridgeOffer: true, scenes: {} });
   });
 
   it('normalizes every field, with its default where it doesn’t fit', () => {
@@ -48,9 +48,14 @@ describe('the settings document', () => {
 
 describe('migrations', () => {
   it('reads a version-1 fixture as it is', () => {
-    const fixture = { v: 1, scene: 'test', hudHidden: true, scenes: { test: { palette: 'uv', glow: 'low', sensitivity: 2, trails: 0.2, zoom: 0.5 } } };
+    const fixture = { v: 1, scene: 'test', hudHidden: true, bridgeOffer: false, scenes: { test: { palette: 'uv', glow: 'low', sensitivity: 2, trails: 0.2, zoom: 0.5 } } };
     const m = migrateSettings(fixture);
     expect(m.ok && m.settings).toEqual(fixture);
+  });
+
+  it('reads a 0.1 document (no bridgeOffer) as offering the bridge', () => {
+    const m = migrateSettings({ v: 1, scene: 'test', hudHidden: false, scenes: {} });
+    expect(m.ok && m.settings.bridgeOffer).toBe(true);
   });
 
   it('refuses what isn’t a settings document', () => {

@@ -14,7 +14,14 @@
  * When the share ends (Chrome's "Stop sharing", the shared tab closed), the
  * tracks end, and the page goes back to LISTEN while the scene eases into
  * idle (R7). Nothing pops up.
+ *
+ * The title (R9, S2): the title bridge labels a YouTube tab with its title
+ * through Chrome's capture handle, which the shared tab's video track
+ * carries. It's read when the share starts and again on every
+ * `capturehandlechange` (the next video, the next song, or the user moving
+ * the share with "Share this tab instead"). It's always the shared tab's own.
  */
+import { BRIDGE_VERSION, isOlder, parseHandle } from '@/lib/bridge';
 import { setScalar } from '@/lib/signal/layout';
 import { type ReactProfile, createSignalEngine, type SignalEngine } from '@/lib/signal/signal';
 import { postSignal } from '@/scene/host';
@@ -73,6 +80,20 @@ function ensureAnalyser(): Analyser {
   return analyser;
 }
 
+/** The video track's capture handle (null where the browser has none). */
+function handleOf(track: MediaStreamTrack): string | null {
+  const t = track as MediaStreamTrack & { getCaptureHandle?: () => { handle?: string } | null };
+  return t.getCaptureHandle?.()?.handle ?? null;
+}
+
+/** Reads the shared tab's label into the live store: its title, and whether the bridge is there and current. */
+function readLabel(track: MediaStreamTrack): void {
+  const label = parseHandle(handleOf(track));
+  const live = liveStore.getState();
+  if (!label) live.setLabel(null, 'none');
+  else live.setLabel(label.title || null, isOlder(label.v, BRIDGE_VERSION) ? 'old' : 'ok');
+}
+
 /** Uses `s` as the source (the graph reconnected, SWITCH included). */
 function adoptStream(s: MediaStream): void {
   if (stream) stopStream(stream);
@@ -80,6 +101,12 @@ function adoptStream(s: MediaStream): void {
   ensureAnalyser().connect(s);
   // The share can end from Chrome's own bar or the tab closing: either track ending ends it.
   for (const track of s.getTracks()) track.addEventListener('ended', () => stream === s && stopListening());
+  // The title: now, and whenever the shared tab's label changes.
+  const video = s.getVideoTracks()[0];
+  if (video) {
+    readLabel(video);
+    video.addEventListener('capturehandlechange', () => stream === s && readLabel(video));
+  } else liveStore.getState().setLabel(null, 'none');
   liveStore.getState().setCapture('live');
 }
 
@@ -110,7 +137,7 @@ export function stopListening(): void {
   if (stream) stopStream(stream);
   stream = null;
   liveStore.getState().setCapture('off');
-  liveStore.getState().setTitle(null);
+  liveStore.getState().setLabel(null, null);
 }
 
 /** The scene's react profile, from the next frame on (the app, when the scene changes). */

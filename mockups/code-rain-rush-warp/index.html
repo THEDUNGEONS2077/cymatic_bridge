@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CODE RAIN EQ · RUSH × WARP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  /*
+   * CODE RAIN EQ · RUSH × WARP for cymatic_bridge (S5): three blends of the
+   * TUNNEL variations C1 RUSH and C5 WARP (the user: "can you do a
+   * combination of C1 and C5?"), all driven by one synthetic 120 BPM track
+   * (the code-rain mock-ups' page, track, palettes and glyphs). One visual
+   * world (black, like the app), so no light theme. Layout: a header, a
+   * sticky control bar (sound, palette), then the three blends stacked, each
+   * a wide canvas with its notes beside it. Only the canvases on screen draw.
+   */
+  :root {
+    --bg: #000000;
+    --surface: #07050d;
+    --line: #261a3d;
+    --line-lit: #442059;
+    --text: #bb8ef0;
+    --text-dim: #a173e0;
+    --accent: #c25bff;
+    --bright: #ecd6ff;
+    --font: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 13px; line-height: 1.55; }
+  a { color: var(--accent); }
+  a:hover, a:focus-visible { color: var(--bright); }
+  header { padding: 28px 24px 12px; max-width: 1240px; margin: 0 auto; }
+  h1 { margin: 0 0 6px; font-size: 18px; letter-spacing: 0.12em; color: var(--accent); text-shadow: 0 0 6px color-mix(in srgb, var(--accent) 35%, transparent); text-wrap: balance; }
+  .lede { margin: 0; max-width: 74ch; color: var(--bright); }
+  .lede span { color: var(--text); }
+  .bar { position: sticky; top: 0; z-index: 5; background: color-mix(in srgb, var(--bg) 86%, transparent); border-bottom: 1px solid var(--line-lit); }
+  .bar-inner { max-width: 1240px; margin: 0 auto; padding: 10px 24px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+  .bar-label { color: var(--text-dim); letter-spacing: 0.08em; font-size: 11px; }
+  button { font: inherit; font-size: 11px; letter-spacing: 0.06em; height: 26px; padding: 0 10px; color: var(--text); background: var(--bg); border: 1px solid var(--line-lit); border-radius: 2px; cursor: pointer; }
+  button:hover, button:focus-visible { color: var(--bright); border-color: var(--accent); box-shadow: 0 0 6px color-mix(in srgb, var(--accent) 35%, transparent); }
+  button:focus-visible { outline: 1px solid var(--bright); outline-offset: 1px; }
+  button[aria-pressed="true"] { color: var(--bright); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--bg)); }
+  .swatches { display: flex; gap: 6px; flex-wrap: wrap; }
+  .swatch { display: inline-flex; align-items: center; gap: 6px; }
+  .chip { width: 22px; height: 8px; border-radius: 1px; }
+  .section { font-variant-numeric: tabular-nums; color: var(--text-dim); font-size: 11px; margin-left: auto; }
+  main { max-width: 1240px; margin: 0 auto; padding: 18px 24px 48px; display: grid; gap: 22px; }
+  .dir { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 18px; align-items: start; }
+  .stage { position: relative; border: 1px solid var(--line-lit); background: #000; aspect-ratio: 16 / 8; }
+  .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .tag { position: absolute; left: 10px; top: 8px; font-size: 11px; letter-spacing: 0.1em; color: var(--bright); text-shadow: 0 0 4px #000; }
+  .notes h2 { margin: 2px 0 6px; font-size: 14px; letter-spacing: 0.1em; color: var(--accent); }
+  .notes p { margin: 0 0 8px; color: var(--bright); }
+  .notes ul { margin: 0; padding-left: 16px; }
+  .notes li { margin-bottom: 4px; }
+  footer { max-width: 1240px; margin: 0 auto; padding: 0 24px 32px; color: var(--text-dim); font-size: 11px; }
+  @media (max-width: 860px) { .dir { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>CODE RAIN EQ · RUSH × WARP · THREE BLENDS</h1>
+  <p class="lede">C1's streams of code round the core, with C5's speed, mixed three ways: <span>by time</span> (the warp comes on the beat), <span>in layers</span> (the warp sits behind the code) and <span>by distance</span> (the warp is what's close to you). All three keep the rules: each stream listens to one band and its colour shows which; louder means faster and longer; heads flare on the beat; the core at the centre is the one focus. Pick one, or say what to move between them.</p>
+</header>
+
+<div class="bar">
+  <div class="bar-inner">
+    <button type="button" id="sound" aria-pressed="false">PLAY SOUND</button>
+    <span class="bar-label">PALETTE</span>
+    <div class="swatches" id="swatches" role="group" aria-label="Palette"></div>
+    <span class="section" id="section" aria-live="off">BAR 1 · FULL</span>
+  </div>
+</div>
+
+<main>
+  <section class="dir" aria-labelledby="c7-title">
+    <div class="stage"><canvas id="c7" aria-label="Blend C7, SURGE, animated"></canvas><span class="tag">C7 · SURGE</span></div>
+    <div class="notes">
+      <h2 id="c7-title">C7 · SURGE</h2>
+      <p>C1's code, with C5's warp arriving on the beat: the streams lunge forward on every kick.</p>
+      <ul>
+        <li>Without a beat it's C1: calm streams of code round the core (watch the breakdown).</li>
+        <li>Each beat surges the flight: trails stretch and streaks of light grow behind the code, then ease away.</li>
+        <li>Surges overlap a little, so a busy track keeps faint streaks between beats.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="dir" aria-labelledby="c8-title">
+    <div class="stage"><canvas id="c8" aria-label="Blend C8, LAYERS, animated"></canvas><span class="tag">C8 · LAYERS</span></div>
+    <div class="notes">
+      <h2 id="c8-title">C8 · LAYERS</h2>
+      <p>C1's code in front, C5's warp behind it.</p>
+      <ul>
+        <li>The streams of code stay as calm and readable as C1.</li>
+        <li>Behind them, thin lines of light fill the whole view and carry the speed: drifting specks when it's calm, long streaks when the beat surges.</li>
+        <li>Two depths of motion, one focus.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="dir" aria-labelledby="c9-title">
+    <div class="stage"><canvas id="c9" aria-label="Blend C9, STRETCH, animated"></canvas><span class="tag">C9 · STRETCH</span></div>
+    <div class="notes">
+      <h2 id="c9-title">C9 · STRETCH</h2>
+      <p>Code near the core, streaks near you: glyphs melt into light as they rush past.</p>
+      <ul>
+        <li>Far off, the streams are crisp code closing in on the core.</li>
+        <li>As a stream nears you, its trail turns into a streak; the head stays a glyph.</li>
+        <li>Each beat surges: the streaks reach further in, then ease back.</li>
+        <li>The code spreads wider than C1's (C5's "everywhere"), with space kept round the core.</li>
+      </ul>
+    </div>
+  </section>
+</main>
+<footer>C1 and C5 on their own: <a href="https://claude.ai/artifact/RzD8ccGWzYTzoPhKfEUnV4">TUNNEL variations</a>. Test track: 120 BPM, kick on every beat, snare on 2 and 4, off-beat hats, a bassline and a pad; bars 13–16 of every 16 drop the kick (a breakdown). Flashes are limited as the app limits them (at most 3 a second). Glyphs are mirrored katakana where the system has a Japanese font (MS Gothic on Windows), otherwise letters and digits. Mock-ups are drawn with Canvas 2D; the real scene will be WebGL on SIGNAL.</footer>
+
+<script>
+'use strict';
+const TAU = Math.PI * 2;
+// --- The palettes (cymatic_bridge 0.3.0's eight: accent = bass, cool = treble, bright = beat accents). ---
+const PALETTES = [
+  ['UV', '#c25bff', '#20e0c0', '#ecd6ff'], ['LASER', '#ff2e4d', '#5fe3ff', '#ffcbd2'], ['ACID', '#b8ff2e', '#8a5cff', '#edffcb'],
+  ['SOLAR', '#ff8a1f', '#3a6dff', '#ffe2c7'], ['AURORA', '#3dffb0', '#ff4fd8', '#ceffeb'], ['TOXIC', '#ffe32e', '#a04dff', '#fff8cb'],
+  ['FROST', '#9fd8ff', '#5b5bff', '#e7f5ff'], ['FLARE', '#ff4fb3', '#2ee6ff', '#ffd3ec'],
+];
+const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+const mixc = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
+let pal = { accent: hex(PALETTES[0][1]), cool: hex(PALETTES[0][2]), bright: hex(PALETTES[0][3]) };
+// Frequency → colour (the app's freqColor): accent at the bass, cool at the treble, lifted toward bright when loud.
+function freqColor(x, e) {
+  const c = mixc(pal.accent, pal.cool, x * x * (3 - 2 * x));
+  return mixc(c, pal.bright, 0.35 * e * e);
+}
+const rgba = (c, a) => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${Math.max(0, Math.min(1, a))})`;
+
+// Glow sprites along the ramp (16 steps), rebuilt when the palette changes: cheaper than a gradient per glow.
+const SPRITES = 16;
+let sprites = [];
+function buildSprites() {
+  sprites = [];
+  for (let k = 0; k < SPRITES; k++) {
+    const c = freqColor(k / (SPRITES - 1), 0.2);
+    const s = document.createElement('canvas');
+    s.width = s.height = 64;
+    const g = s.getContext('2d');
+    const grad = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+    grad.addColorStop(0, rgba(mixc(c, [255, 255, 255], 0.5), 1));
+    grad.addColorStop(0.18, rgba(c, 0.9));
+    grad.addColorStop(0.45, rgba(c, 0.25));
+    grad.addColorStop(1, rgba(c, 0));
+    g.fillStyle = grad;
+    g.fillRect(0, 0, 64, 64);
+    sprites.push(s);
+  }
+}
+const spriteOf = (x) => sprites[Math.round(Math.max(0, Math.min(1, x)) * (SPRITES - 1))];
+
+// --- The test track, as a schedule: the signal below and the sound (PLAY SOUND) both follow it. ---
+const BPM = 120, BEAT = 60 / BPM, BAR = BEAT * 4, LOOP = BAR * 16;
+const BASS_NOTES = [41, 41, 44, 39, 41, 41, 46, 44]; // MIDI, one per 8th of a bar's first half, repeated
+const sectionOf = (t) => (Math.floor((t % LOOP) / BAR) >= 12 ? 'BREAKDOWN' : 'FULL');
+const hasKick = (t) => sectionOf(t) === 'FULL';
+
+// --- The synthetic SIGNAL: 64 bands (0..1) and the scalars the app's shaders get. ---
+const BANDS = 64;
+const target = new Float32Array(BANDS), bands = new Float32Array(BANDS);
+const sig = { level: 0, bass: 0, beat: 0, beatCount: 0, accent: 0, flow: 0 };
+let lastKick = -1, lastAccent = -10;
+const gauss = (x, m, s) => Math.exp(-0.5 * ((x - m) / s) ** 2);
+function stepSignal(t, dt) {
+  const beatT = t % BEAT, eighth = t % (BEAT / 2);
+  const kick = hasKick(t) ? Math.exp(-beatT / 0.12) : 0;
+  const beatIndex = Math.floor((t % BAR) / BEAT);
+  const snare = beatIndex % 2 === 1 ? Math.exp(-beatT / 0.18) : 0;
+  const hat = eighth > BEAT / 4 ? Math.exp(-(eighth - BEAT / 4) / 0.05) : 0;
+  const bassEnv = (hasKick(t) ? 0.55 : 0.2) * (0.6 + 0.4 * Math.exp(-eighth / 0.15));
+  const pad = (sectionOf(t) === 'BREAKDOWN' ? 0.45 : 0.22) * (0.7 + 0.3 * Math.sin(t * 0.7));
+  for (let b = 0; b < BANDS; b++) {
+    const x = b / (BANDS - 1);
+    target[b] = Math.min(1, 0.95 * kick * gauss(x, 0.06, 0.07) + bassEnv * gauss(x, 0.16, 0.06) + 0.7 * snare * (gauss(x, 0.45, 0.12) + 0.4 * gauss(x, 0.8, 0.15)) + 0.6 * hat * gauss(x, 0.88, 0.08) + pad * gauss(x, 0.35, 0.16) + 0.03);
+    // The app's balanced profile: quick up (15 ms), short fall (140 ms).
+    const tau = target[b] > bands[b] ? 0.015 : 0.14;
+    bands[b] += (target[b] - bands[b]) * (1 - Math.exp(-dt / tau));
+  }
+  let level = 0, bass = 0;
+  for (let b = 0; b < BANDS; b++) { level += bands[b]; if (b < 10) bass += bands[b]; }
+  sig.level = level / BANDS;
+  sig.bass = bass / 10;
+  // A beat on each kick; the accent at most 3 a second (the app's strobe limit), on strong ones.
+  const k = Math.floor(t / BEAT);
+  sig.beat *= Math.exp(-dt / 0.15);
+  if (hasKick(t) && k !== lastKick && beatT < 0.12) {
+    lastKick = k;
+    sig.beat = 1;
+    sig.beatCount++;
+    if (t - lastAccent >= 0.34) { sig.accent = 0.8; lastAccent = t; }
+    for (const d of directions) d.onBeat();
+  }
+  sig.accent *= Math.exp(-dt / 0.2);
+  sig.flow += dt * (0.25 + 1.75 * sig.level);
+}
+const bandAt = (x) => bands[Math.round(Math.max(0, Math.min(1, x)) * (BANDS - 1))];
+
+function rng(seed) { return () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646; }
+// --- A canvas that follows its box, at the screen's pixel ratio; it draws only while on screen. ---
+function setup(id) {
+  const canvas = document.getElementById(id);
+  const ctx = canvas.getContext('2d');
+  const view = { canvas, ctx, w: 0, h: 0, visible: true };
+  const fit = () => {
+    const r = canvas.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
+    view.w = r.width; view.h = r.height;
+    canvas.width = Math.round(r.width * dpr); canvas.height = Math.round(r.height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  };
+  new ResizeObserver(() => { fit(); view.onResize?.(); }).observe(canvas);
+  new IntersectionObserver(([e]) => (view.visible = e.isIntersecting)).observe(canvas);
+  fit();
+  return view;
+}
+/** Clears a view to black and switches to adding light (glows sum, as the app's additive passes do). */
+function clear(ctx, w, h) {
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, w, h);
+  ctx.globalCompositeOperation = 'lighter';
+}
+
+// --- Glyphs: cyberdeck's rain set (mirrored half-width katakana, digits, a few symbols), pre-drawn per colour. ---
+const GLYPHS = [...'ｦｱｳｴｵｶｷｹｺｻｼｽｾｿﾀﾂﾃﾅﾆﾇﾈﾊﾋﾎﾏﾐﾑﾒﾓﾔﾕﾗﾘﾜ0123456789Z:.=*+-<>|'];
+const RAMP = 12, CELL = 32;
+let atlases = [], headAtlas = null, rampCss = [], rampClear = [];
+/** One canvas of every glyph in colour `c` (CELL px squares, mirrored like cyberdeck's rain). */
+function atlasOf(c) {
+  const a = document.createElement('canvas');
+  a.width = GLYPHS.length * CELL; a.height = CELL;
+  const g = a.getContext('2d');
+  g.font = `${CELL - 6}px "MS Gothic", "Noto Sans Mono CJK JP", "JetBrains Mono", monospace`;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillStyle = rgba(c, 1);
+  GLYPHS.forEach((ch, i) => { g.save(); g.translate(i * CELL + CELL / 2, CELL / 2); g.scale(-1, 1); g.fillText(ch, 0, 1); g.restore(); });
+  return a;
+}
+/** The glyph atlases along the ramp, the near-white head atlas, and the ramp as CSS colours, solid and clear (the streaks' gradients run from one to the other). */
+function buildAtlases() {
+  atlases = Array.from({ length: RAMP }, (_, k) => atlasOf(freqColor(k / (RAMP - 1), 0.15)));
+  headAtlas = atlasOf(mixc(pal.bright, [255, 255, 255], 0.4));
+  const ramp = Array.from({ length: RAMP }, (_, k) => freqColor(k / (RAMP - 1), 0.15));
+  rampCss = ramp.map((c) => rgba(c, 1));
+  // The same colour at alpha 0 (not transparent black), so a fading streak never darkens on the way out.
+  rampClear = ramp.map((c) => rgba(c, 0));
+}
+const rampIndex = (band) => Math.round(Math.max(0, Math.min(1, band)) * (RAMP - 1));
+const atlasFor = (band) => atlases[rampIndex(band)];
+/** Draws glyph `g` from atlas `at`, centred at x, y, `size` px, at `alpha`. */
+function glyph(ctx, at, g, x, y, size, alpha) {
+  if (alpha < 0.02) return;
+  ctx.globalAlpha = Math.min(1, alpha);
+  ctx.drawImage(at, g * CELL, 0, CELL, CELL, x - size / 2, y - size / 2, size, size);
+}
+/** A glow sprite in `band`'s colour round x, y (for flaring heads), skipped when faint. */
+function flareAt(ctx, band, x, y, s, alpha) {
+  if (alpha < 0.03) return;
+  ctx.globalAlpha = Math.min(1, alpha);
+  ctx.drawImage(spriteOf(band), x - s * 1.4, y - s * 1.4, s * 2.8, s * 2.8);
+}
+
+// --- Shared tunnel geometry: a camera on the axis looking down +z; a point (x, y) at depth z lands at centre + (x, y)·f/z. ---
+/** Nearest depth drawn: closer than this a glyph has passed you. */
+const NEAR = 0.3;
+/** How visible a point at depth z is: it fades in over the far third of the tunnel and out just before the camera (PLEXUS's near fade). */
+function fogOf(z, deep) {
+  return Math.max(0, Math.min(1, (deep - z) / (deep * 0.35))) * Math.max(0, Math.min(1, (z - NEAR) / 0.6));
+}
+/** The stage's focal length in px: a point 1 unit off the axis at depth 1 lands this far from the centre. */
+const focal = (v) => 0.42 * Math.min(v.w, v.h * 1.6);
+/** A glyph's size in px at depth z (a glyph is 0.1 units across), capped so passing ones don't fill the screen. */
+const sizeAt = (f, z) => Math.min(72, (0.1 * f) / z);
+/** Is a point (with half-size m) on the stage at all? Off-stage glyphs are skipped. */
+const onStage = (v, x, y, m) => x > -m && x < v.w + m && y > -m && y < v.h + m;
+/** Hermite smoothstep: 0 below a, 1 above b, eased between. */
+function smooth(a, b, x) {
+  const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
+}
+/** The core: a glow at x, y that swells with the level and pulses on the beat (pulse 0..1); k scales it. */
+function drawCore(ctx, x, y, f, pulse, k = 1) {
+  const s = (0.12 + 0.35 * sig.level + 0.3 * pulse) * f * k;
+  ctx.globalAlpha = 0.45 + 0.5 * pulse;
+  ctx.drawImage(spriteOf(0.5), x - s, y - s, 2 * s, 2 * s);
+}
+
+// --- Streams: a head rushing toward the camera with a trail of glyphs behind it (farther away). ---
+/** The point a place() function last wrote (shared, so placing allocates nothing). */
+const P = { x: 0, y: 0 };
+/** A place() for streams at (angle, r) round the axis, seen by `cam` (its centre cx, cy and focal length f, set each frame): writes where the stream is on screen at depth z into P. */
+function radialPlace(cam) {
+  return (s, z) => { P.x = cam.cx + (Math.cos(s.angle) * s.r * cam.f) / z; P.y = cam.cy + (Math.sin(s.angle) * s.r * cam.f) / z; };
+}
+/** A stream somewhere in the first `deep` units, on a random band; the blend sets where it sits (angle, r). */
+function makeStream(rand, deep) {
+  return { z: rand() * deep, band: rand(), e: 0, len: 6, flare: 0, angle: 0, r: 1, glyphs: Array.from({ length: 24 }, () => Math.floor(rand() * GLYPHS.length)) };
+}
+/** Moves a stream toward the camera by dt: its band's loudness sets its speed (units/s, × k, the flight's share) and its trail (lenBase + lenRange × loudness glyphs, eased); the treble flickers its glyphs. True once its whole trail has passed the camera: the caller places it again, far off. */
+function stepStream(s, dt, rand, k, gap, lenBase = 5, lenRange = 18) {
+  const e = (s.e = bandAt(s.band));
+  s.len += (lenBase + lenRange * e - s.len) * (1 - Math.exp(-dt / 0.3));
+  s.z -= (0.5 + 3.5 * e) * k * dt;
+  s.flare *= Math.exp(-dt / 0.2);
+  if (rand() < (0.5 + 5 * bandAt(0.9)) * dt) s.glyphs[Math.floor(rand() * s.glyphs.length)] = Math.floor(rand() * GLYPHS.length);
+  return s.z + s.len * gap < NEAR;
+}
+/** Draws a stream: the head near-white (flaring on the beat), the trail fading in its band's colour. place(s, z) writes the stream's screen point at depth z into P. crispAt(z), if given, dims the glyphs where the stream has melted into a streak (C9): the trail fully, the head only partly. */
+function drawStream(ctx, v, s, f, deep, gap, place, crispAt = null) {
+  const at = atlasFor(s.band);
+  for (let i = 0; i <= s.len; i++) {
+    const z = s.z + i * gap;
+    if (z > deep) break;
+    let fog = fogOf(z, deep);
+    if (crispAt) fog *= i === 0 ? 0.45 + 0.55 * crispAt(z) : crispAt(z);
+    if (fog < 0.02) continue;
+    place(s, z);
+    const size = sizeAt(f, z);
+    if (!onStage(v, P.x, P.y, size * 1.5)) continue;
+    if (i === 0) {
+      const fs = size * (1 + 0.6 * s.flare);
+      flareAt(ctx, s.band, P.x, P.y, fs, s.flare * 0.7 * fog);
+      glyph(ctx, headAtlas, s.glyphs[0], P.x, P.y, fs, fog);
+    } else {
+      glyph(ctx, at, s.glyphs[i % s.glyphs.length], P.x, P.y, size, Math.pow(1 - i / (s.len + 1), 1.5) * (0.3 + 0.7 * s.e) * fog);
+    }
+  }
+}
+/** Draws a streak of light along stream (or speck) s, from depth za (its bright end, nearest you) to zb (where it has faded out), in its band's colour: one gradient line, `width` px, at `alpha`. Skipped when faint, or when its far end is off the stage (a streak runs straight out from the centre, so then all of it is). */
+function drawStreak(ctx, v, s, za, zb, place, alpha, width) {
+  if (alpha < 0.02 || zb <= za) return;
+  place(s, zb);
+  const tx = P.x, ty = P.y;
+  if (!onStage(v, tx, ty, 0)) return;
+  place(s, za);
+  const k = rampIndex(s.band), g = ctx.createLinearGradient(P.x, P.y, tx, ty);
+  g.addColorStop(0, rampCss[k]);
+  g.addColorStop(1, rampClear[k]);
+  ctx.strokeStyle = g;
+  ctx.globalAlpha = Math.min(1, alpha);
+  ctx.lineWidth = width;
+  ctx.beginPath(); ctx.moveTo(P.x, P.y); ctx.lineTo(tx, ty); ctx.stroke();
+}
+/** The flight's speed, C5's engine: it eases toward cruise + level × levelK + the beat's surge × surgeK, quickly up (a lunge, 100 ms) and slowly down (a glide, 350 ms), so it never jumps. beat() starts a surge, which fades over about a third of a second. */
+function makeFlight(cruise, levelK, surgeK) {
+  const flight = {
+    speed: cruise + levelK * 0.3,
+    surge: 0,
+    beat() { flight.surge = 1; },
+    step(dt) {
+      flight.surge *= Math.exp(-dt / 0.35);
+      const goal = cruise + levelK * sig.level + surgeK * flight.surge;
+      flight.speed += (goal - flight.speed) * (1 - Math.exp(-dt / (goal > flight.speed ? 0.1 : 0.35)));
+    },
+  };
+  return flight;
+}
+
+// --- C7 · SURGE: C1's streams round the core, and C5's speed on the beat (trails stretch, streaks show only in a surge). ---
+function blendSurge() {
+  const v = setup('c7');
+  const DEEP = 8, GAP = 0.32;
+  const cam = { cx: 0, cy: 0, f: 1 }, place = radialPlace(cam), flight = makeFlight(0.6, 1.3, 2.0);
+  let streams = [], rand, pulse = 0;
+  // C1's places: any angle, between just off the axis and past the screen's edge.
+  const reset = (s) => { s.angle = rand() * TAU; s.r = 0.55 + rand() * 0.9; };
+  v.onResize = () => { rand = rng(13); streams = Array.from({ length: 130 }, () => { const s = makeStream(rand, DEEP); reset(s); return s; }); };
+  v.onResize();
+  return {
+    onBeat() { pulse = 1; flight.beat(); for (const s of streams) if (s.band < 0.3) s.flare = 1; },
+    draw(t, dt) {
+      if (!v.visible) return;
+      const { ctx, w, h } = v;
+      clear(ctx, w, h);
+      cam.f = focal(v); cam.cx = w / 2; cam.cy = h / 2;
+      pulse *= Math.exp(-dt / 0.25);
+      flight.step(dt);
+      const sp = flight.speed;
+      // Faster means farther between trail glyphs (the trail stretches); streaks show only above cruising speed.
+      const gap = GAP * (1 + 0.5 * Math.max(0, sp - 1));
+      const streak = 0.3 * smooth(1.1, 2.2, sp);
+      ctx.lineCap = 'round';
+      drawCore(ctx, cam.cx, cam.cy, cam.f, pulse);
+      for (const s of streams) {
+        if (stepStream(s, dt, rand, 0.4 + 0.6 * sp, gap)) { s.z = DEEP + rand(); reset(s); }
+        if (streak > 0.02) {
+          const za = Math.max(s.z, 0.45), zb = Math.min(DEEP, s.z + s.len * gap);
+          drawStreak(ctx, v, s, za, zb, place, streak * fogOf((za + zb) / 2, DEEP) * (0.35 + 0.65 * s.e), Math.max(0.8, Math.min(3.5, sizeAt(cam.f, za) * 0.08)));
+        }
+        drawStream(ctx, v, s, cam.f, DEEP, gap, place);
+      }
+      ctx.globalAlpha = 1;
+    },
+  };
+}
+
+// --- C8 · LAYERS: C1's streams in front, as calm as C1; C5's warp behind them as thin lines of light over the whole view. ---
+function blendLayers() {
+  const v = setup('c8');
+  const DEEP = 8, GAP = 0.32, DEEP_BACK = 12, SPECKS = 220;
+  const cam = { cx: 0, cy: 0, f: 1 }, place = radialPlace(cam), flight = makeFlight(0.6, 1.3, 2.0);
+  let streams = [], specks = [], rand, pulse = 0;
+  const reset = (s) => { s.angle = rand() * TAU; s.r = 0.55 + rand() * 0.9; };
+  // The warp's specks go anywhere across the view (r spread evenly over the disc), each on its own band.
+  const resetSpeck = (d) => { d.angle = rand() * TAU; d.r = 0.3 + Math.sqrt(rand()) * 2.4; d.band = rand(); };
+  v.onResize = () => {
+    rand = rng(19);
+    streams = Array.from({ length: 120 }, () => { const s = makeStream(rand, DEEP); reset(s); return s; });
+    specks = Array.from({ length: SPECKS }, () => { const d = { z: rand() * DEEP_BACK, angle: 0, r: 1, band: 0 }; resetSpeck(d); return d; });
+  };
+  v.onResize();
+  return {
+    onBeat() { pulse = 1; flight.beat(); for (const s of streams) if (s.band < 0.3) s.flare = 1; },
+    draw(t, dt) {
+      if (!v.visible) return;
+      const { ctx, w, h } = v;
+      clear(ctx, w, h);
+      cam.f = focal(v); cam.cx = w / 2; cam.cy = h / 2;
+      pulse *= Math.exp(-dt / 0.25);
+      flight.step(dt);
+      const sp = flight.speed;
+      ctx.lineCap = 'round';
+      // The warp behind: each speck's length (in depth) grows with the speed, from a dot at cruise to a long line in a surge.
+      const stretch = 0.05 + 0.45 * Math.max(0, sp - 0.9);
+      for (const d of specks) {
+        const e = bandAt(d.band);
+        d.z -= (1 + 1.5 * e) * sp * dt;
+        if (d.z + stretch < NEAR) { d.z = DEEP_BACK + rand(); resetSpeck(d); continue; }
+        const za = Math.max(d.z, 0.45), zb = Math.min(DEEP_BACK, d.z + stretch);
+        drawStreak(ctx, v, d, za, zb, place, 0.42 * fogOf((za + zb) / 2, DEEP_BACK) * (0.4 + 0.6 * e), Math.max(0.7, Math.min(2.5, sizeAt(cam.f, za) * 0.06)));
+      }
+      // The code in front keeps C1's pace, nudged a little by the flight so the two layers feel joined.
+      drawCore(ctx, cam.cx, cam.cy, cam.f, pulse);
+      for (const s of streams) {
+        if (stepStream(s, dt, rand, 0.85 + 0.15 * sp, GAP)) { s.z = DEEP + rand(); reset(s); }
+        drawStream(ctx, v, s, cam.f, DEEP, GAP, place);
+      }
+      ctx.globalAlpha = 1;
+    },
+  };
+}
+
+// --- C9 · STRETCH: crisp code far off, near the core; as a stream nears you its trail melts into a streak. Surges push the melting further in. ---
+function blendStretch() {
+  const v = setup('c9');
+  const DEEP = 8, GAP = 0.3;
+  const cam = { cx: 0, cy: 0, f: 1 }, place = radialPlace(cam), flight = makeFlight(0.65, 1.2, 1.5);
+  let streams = [], rand, pulse = 0, zCrisp = 1.7;
+  // Wider than C1 (toward C5's "everywhere"), keeping a clear space round the core.
+  const reset = (s) => { s.angle = rand() * TAU; s.r = 0.3 + Math.sqrt(rand()) * 1.9; };
+  v.onResize = () => { rand = rng(23); streams = Array.from({ length: 180 }, () => { const s = makeStream(rand, DEEP); reset(s); return s; }); };
+  v.onResize();
+  // How crisp a glyph at depth z is: code (1) beyond zCrisp, all light (0) by 0.65.
+  const crispAt = (z) => smooth(0.65, zCrisp, z);
+  return {
+    onBeat() { pulse = 1; flight.beat(); for (const s of streams) if (s.band < 0.3) s.flare = 1; },
+    draw(t, dt) {
+      if (!v.visible) return;
+      const { ctx, w, h } = v;
+      clear(ctx, w, h);
+      cam.f = focal(v); cam.cx = w / 2; cam.cy = h / 2;
+      pulse *= Math.exp(-dt / 0.25);
+      flight.step(dt);
+      const sp = flight.speed;
+      const gap = GAP * (1 + 0.4 * Math.max(0, sp - 1));
+      // A surge pushes the melting further in: the streaks reach toward the core, then ease back with the speed.
+      zCrisp = 1.7 + 0.5 * Math.max(0, sp - 1);
+      ctx.lineCap = 'round';
+      drawCore(ctx, cam.cx, cam.cy, cam.f, pulse, 0.9);
+      for (const s of streams) {
+        if (stepStream(s, dt, rand, 0.5 + 0.5 * sp, gap)) { s.z = DEEP + rand(); reset(s); }
+        // The streak covers the melted part of the trail: from the head (or where it passed you) to where the code turns crisp.
+        const za = Math.max(s.z, 0.4), zb = Math.min(s.z + s.len * gap, zCrisp + 0.3);
+        if (zb > za) {
+          const a = 0.5 * (1 - crispAt(za)) * Math.min(1, (za - NEAR) / 0.25) * (0.35 + 0.65 * s.e);
+          drawStreak(ctx, v, s, za, zb, place, a, Math.max(0.8, Math.min(3.5, sizeAt(cam.f, za) * 0.08)));
+        }
+        drawStream(ctx, v, s, cam.f, DEEP, gap, place, crispAt);
+      }
+      ctx.globalAlpha = 1;
+    },
+  };
+}
+
+// --- Sound (PLAY SOUND): the same track, scheduled on the audio clock, which then drives the visuals too. ---
+let audio = null, audioStart = 0, nextStep = 0;
+function playStep(ctx, at, step) {
+  const t = step * (BEAT / 4);
+  const out = ctx.destination;
+  const env = (node, peak, decay) => { const g = ctx.createGain(); g.gain.setValueAtTime(peak, at); g.gain.exponentialRampToValueAtTime(0.0008, at + decay); node.connect(g).connect(out); return g; };
+  const noise = () => { const b = ctx.createBuffer(1, ctx.sampleRate * 0.3, ctx.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; const s = ctx.createBufferSource(); s.buffer = b; return s; };
+  if (step % 4 === 0 && hasKick(t)) { const o = ctx.createOscillator(); o.frequency.setValueAtTime(130, at); o.frequency.exponentialRampToValueAtTime(45, at + 0.18); env(o, 0.9, 0.3); o.start(at); o.stop(at + 0.32); }
+  if (step % 8 === 4) { const n = noise(), f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 1800; n.connect(f); env(f, 0.35, 0.2); n.start(at); n.stop(at + 0.25); }
+  if (step % 4 === 2) { const n = noise(), f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 8000; n.connect(f); env(f, 0.12, 0.05); n.start(at); n.stop(at + 0.08); }
+  if (step % 2 === 0) {
+    const note = BASS_NOTES[(step / 2) % BASS_NOTES.length], o = ctx.createOscillator(), f = ctx.createBiquadFilter();
+    o.type = 'sawtooth'; o.frequency.value = 440 * 2 ** ((note - 69) / 12); f.type = 'lowpass'; f.frequency.value = 420; o.connect(f);
+    env(f, hasKick(t) ? 0.22 : 0.08, 0.22); o.start(at); o.stop(at + 0.25);
+  }
+}
+function schedule() {
+  if (!audio) return;
+  while (audioStart + nextStep * (BEAT / 4) < audio.currentTime + 0.3) { playStep(audio, audioStart + nextStep * (BEAT / 4), nextStep); nextStep++; }
+}
+document.getElementById('sound').addEventListener('click', async (e) => {
+  const btn = e.currentTarget;
+  try {
+    // One timeline: the track's time carries on unbroken when the audio clock takes over (and when it hands back).
+    const now = clock();
+    if (!audio) {
+      audio = new AudioContext();
+      audioStart = audio.currentTime - now;
+      nextStep = Math.ceil((now + 0.1) / (BEAT / 4));
+      btn.setAttribute('aria-pressed', 'true'); btn.textContent = 'STOP SOUND';
+    } else {
+      await audio.close(); audio = null;
+      base = now - performance.now() / 1000;
+      btn.setAttribute('aria-pressed', 'false'); btn.textContent = 'PLAY SOUND';
+    }
+  } catch { btn.textContent = 'SOUND BLOCKED'; }
+});
+
+// --- The palette picker. ---
+const sw = document.getElementById('swatches');
+PALETTES.forEach(([name, a, c, b], i) => {
+  const btn = document.createElement('button');
+  btn.type = 'button'; btn.className = 'swatch'; btn.setAttribute('aria-pressed', String(i === 0));
+  btn.innerHTML = `<span class="chip" style="background:linear-gradient(90deg, ${a} 0 50%, ${c} 50%)"></span>${name}`;
+  btn.addEventListener('click', () => {
+    pal = { accent: hex(a), cool: hex(c), bright: hex(b) };
+    buildSprites();
+    buildAtlases();
+    sw.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === btn)));
+  });
+  sw.appendChild(btn);
+});
+
+// --- The clock and the frame loop: one track time for all three (the audio clock while sound plays, heard time: less the output latency). ---
+let base = 0;
+const clock = () => (audio ? audio.currentTime - audioStart - (audio.outputLatency || 0) : performance.now() / 1000 + base);
+buildSprites();
+buildAtlases();
+const directions = [blendSurge(), blendLayers(), blendStretch()];
+let last = clock();
+const sectionEl = document.getElementById('section');
+let shownBar = -1;
+function frame() {
+  schedule();
+  const t = Math.max(0, clock()), dt = Math.min(0.1, Math.max(0, t - last));
+  last = t;
+  stepSignal(t, dt);
+  for (const d of directions) d.draw(t, dt);
+  const bar = Math.floor((t % LOOP) / BAR);
+  if (bar !== shownBar) { shownBar = bar; sectionEl.textContent = `BAR ${bar + 1} OF 16 · ${sectionOf(t)}`; }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

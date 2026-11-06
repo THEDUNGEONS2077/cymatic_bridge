@@ -260,4 +260,10 @@ These are targets, measured from the first build and recorded in ARCHITECTURE §
   - C5 WARP: glyphs through the whole volume, streaking as the speed (level, beat surges) climbs;
   - C6 ECHO: a ring of glyphs leaves the core every 80 ms, shaped and lit by the spectrum at that moment (SIGNAL's history ring).
 
+  The user: "can you do a combination of C1 and C5?"
+- **2026-11-06: RUSH × WARP blends** (`mockups/code-rain-rush-warp/`), published at https://claude.ai/artifact/K26FfP5ugkBJyZPDneT3bH. C1's code round the core with C5's speed (a flight speed that lunges on each beat and glides back, never jumping), three ways:
+  - C7 SURGE (by time): C1 without a beat; each beat stretches the trails and brings in C5's streaks, which ease away;
+  - C8 LAYERS: C1's code in front, as calm as C1; C5's warp behind it as thin lines over the whole view, specks at cruise and streaks in a surge;
+  - C9 STRETCH (by distance): crisp code far off near the core, trails melting into streaks as they near you; surges push the melting further in.
+
   Waiting for the user's pick.

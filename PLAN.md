@@ -278,5 +278,10 @@ These are targets, measured from the first build and recorded in ARCHITECTURE §
   - its glow reacts: soft lights along it overlap into one halo, taller and brighter where its band is loud (bass in the middle, treble toward the edges; squared, so quiet stays calm);
   - the whole line brightens with the level, under a faint haze;
   - each beat sends a swell of glow running out along it from the centre.
+- **2026-11-06: C8 LAYERS picked** ("I like Layers - C8"), and the horizon becomes a heartbeat line ("I want the horizon the change as if it's a heartbeat pattern line"). Mock-ups in `mockups/code-rain-layers/`, published at https://claude.ai/artifact/6F79Lqbg44rLiXj1oSTMGh. The line is flat between beats; each beat draws an ECG heartbeat (a small P bump, the sharp Q-R-S spike and dip, a wider T bump) whose spike lands with the kick and glows; louder kicks draw taller spikes. The glow still follows the bands and the level. With no beat for 1.6 s, a small resting heartbeat every 1.1 s keeps the line from flatlining (the idle breath, R14, as a pulse). Two ways to run it, each on its own canvas:
+  - OUTWARD: written at the centre, the trace scrolls out both ways (mirrored), fading toward the edges; the P bump is drawn ahead, all at once, so the spike needs no delay;
+  - MONITOR: a heart monitor; a bright point sweeps left to right every 2 s writing the trace, which fades behind it, with a gap just ahead of the point and the flat horizon faintly lit across the view (no P bump: it would come before the beat).
 
-  Waiting for the user's pick of a blend.
+  Test note: this machine was heavily loaded (load ~11 from another session's Java build), so headless frames ran at 2–5 fps and dropped beats; the frames were checked by stepping the page at a steady 60 fps instead.
+
+  Waiting for the user's pick (OUTWARD or MONITOR), then the WebGL build on SIGNAL.

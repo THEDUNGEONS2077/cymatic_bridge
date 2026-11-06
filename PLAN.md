@@ -273,4 +273,10 @@ These are targets, measured from the first build and recorded in ARCHITECTURE §
 
   In all three, a soft band of haze follows the level, and each beat sends light running out along the horizon from the centre.
 
-  Waiting for the user's pick (a blend and a horizon).
+  The user: "keep the straight line and get rid off the bouncing line above it, have the horizon straight line react by how it glows". Now one horizon (the switch, RIDGE and BANK are gone):
+  - a straight, fine line through the vanishing point that never moves;
+  - its glow reacts: soft lights along it overlap into one halo, taller and brighter where its band is loud (bass in the middle, treble toward the edges; squared, so quiet stays calm);
+  - the whole line brightens with the level, under a faint haze;
+  - each beat sends a swell of glow running out along it from the centre.
+
+  Waiting for the user's pick of a blend.

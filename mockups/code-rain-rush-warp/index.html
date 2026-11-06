@@ -13,9 +13,12 @@
    * TUNNEL variations C1 RUSH and C5 WARP (the user: "can you do a
    * combination of C1 and C5?"), all driven by one synthetic 120 BPM track
    * (the code-rain mock-ups' page, track, palettes and glyphs). One visual
-   * world (black, like the app), so no light theme. Layout: a header, a
-   * sticky control bar (sound, palette), then the three blends stacked, each
-   * a wide canvas with its notes beside it. Only the canvases on screen draw.
+   * world (black, like the app), so no light theme. The glowing core is
+   * replaced by a dynamic horizon (the user: "can you have there be a dynamic
+   * horizon instead of the light beaming in the centre?"), three ways,
+   * switched by HORIZON. Layout: a header, a sticky control bar (sound,
+   * palette, horizon), then the three blends stacked, each a wide canvas with
+   * its notes beside it. Only the canvases on screen draw.
    */
   :root {
     --bg: #000000;
@@ -37,6 +40,9 @@
   h1 { margin: 0 0 6px; font-size: 18px; letter-spacing: 0.12em; color: var(--accent); text-shadow: 0 0 6px color-mix(in srgb, var(--accent) 35%, transparent); text-wrap: balance; }
   .lede { margin: 0; max-width: 74ch; color: var(--bright); }
   .lede span { color: var(--text); }
+  .horizons { margin: 8px 0; padding-left: 16px; max-width: 74ch; }
+  .horizons li { margin-bottom: 3px; }
+  .horizons b { color: var(--accent); font-weight: 700; letter-spacing: 0.06em; }
   .bar { position: sticky; top: 0; z-index: 5; background: color-mix(in srgb, var(--bg) 86%, transparent); border-bottom: 1px solid var(--line-lit); }
   .bar-inner { max-width: 1240px; margin: 0 auto; padding: 10px 24px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
   .bar-label { color: var(--text-dim); letter-spacing: 0.08em; font-size: 11px; }
@@ -63,8 +69,14 @@
 </head>
 <body>
 <header>
-  <h1>CODE RAIN EQ · RUSH × WARP · THREE BLENDS</h1>
-  <p class="lede">C1's streams of code round the core, with C5's speed, mixed three ways: <span>by time</span> (the warp comes on the beat), <span>in layers</span> (the warp sits behind the code) and <span>by distance</span> (the warp is what's close to you). All three keep the rules: each stream listens to one band and its colour shows which; louder means faster and longer; heads flare on the beat; the core at the centre is the one focus. Pick one, or say what to move between them.</p>
+  <h1>CODE RAIN EQ · RUSH × WARP · DYNAMIC HORIZON</h1>
+  <p class="lede">The three blends of C1 and C5, with <span>a horizon instead of the light in the centre</span>: a line of light across the view, through the point the code streams out of. HORIZON in the bar switches it three ways, in all three blends:</p>
+  <ul class="horizons">
+    <li><b>RIDGE</b>: the horizon is the spectrum. It rises into peaks where the music is loud (bass in the middle, treble toward the edges), with a faint reflection below.</li>
+    <li><b>PULSE</b>: a straight line of light, lit along its length by the spectrum, brighter as the music gets louder.</li>
+    <li><b>BANK</b>: PULSE's line, and the whole view banks and drifts slowly, like a flight. In the app it could lean toward the louder stereo side.</li>
+  </ul>
+  <p class="lede">In all three, each beat sends light running out along the horizon from the centre. The blends keep the rules: each stream listens to one band and its colour shows which; louder means faster and longer; heads flare on the beat. Pick a blend and a horizon, or say what to change.</p>
 </header>
 
 <div class="bar">
@@ -72,6 +84,8 @@
     <button type="button" id="sound" aria-pressed="false">PLAY SOUND</button>
     <span class="bar-label">PALETTE</span>
     <div class="swatches" id="swatches" role="group" aria-label="Palette"></div>
+    <span class="bar-label">HORIZON</span>
+    <div class="swatches" id="horizons" role="group" aria-label="Horizon"></div>
     <span class="section" id="section" aria-live="off">BAR 1 · FULL</span>
   </div>
 </div>
@@ -83,7 +97,7 @@
       <h2 id="c7-title">C7 · SURGE</h2>
       <p>C1's code, with C5's warp arriving on the beat: the streams lunge forward on every kick.</p>
       <ul>
-        <li>Without a beat it's C1: calm streams of code round the core (watch the breakdown).</li>
+        <li>Without a beat it's C1: calm streams of code out of the horizon (watch the breakdown).</li>
         <li>Each beat surges the flight: trails stretch and streaks of light grow behind the code, then ease away.</li>
         <li>Surges overlap a little, so a busy track keeps faint streaks between beats.</li>
       </ul>
@@ -107,12 +121,12 @@
     <div class="stage"><canvas id="c9" aria-label="Blend C9, STRETCH, animated"></canvas><span class="tag">C9 · STRETCH</span></div>
     <div class="notes">
       <h2 id="c9-title">C9 · STRETCH</h2>
-      <p>Code near the core, streaks near you: glyphs melt into light as they rush past.</p>
+      <p>Code near the horizon, streaks near you: glyphs melt into light as they rush past.</p>
       <ul>
-        <li>Far off, the streams are crisp code closing in on the core.</li>
+        <li>Far off, the streams are crisp code closing in on the horizon.</li>
         <li>As a stream nears you, its trail turns into a streak; the head stays a glyph.</li>
         <li>Each beat surges: the streaks reach further in, then ease back.</li>
-        <li>The code spreads wider than C1's (C5's "everywhere"), with space kept round the core.</li>
+        <li>The code spreads wider than C1's (C5's "everywhere"), with space kept round the centre.</li>
       </ul>
     </div>
   </section>
@@ -138,10 +152,18 @@ function freqColor(x, e) {
 }
 const rgba = (c, a) => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${Math.max(0, Math.min(1, a))})`;
 
-// Glow sprites along the ramp (16 steps), rebuilt when the palette changes: cheaper than a gradient per glow.
+// Glow sprites along the ramp (16 steps), and the horizon's haze, rebuilt when the palette changes: cheaper than a gradient per glow.
 const SPRITES = 16;
-let sprites = [];
+let sprites = [], hazeSprite = null;
 function buildSprites() {
+  // The haze: a soft vertical falloff in the ramp's middle colour, stretched along the horizon (light in the air, not a lamp).
+  hazeSprite = document.createElement('canvas');
+  hazeSprite.width = 2; hazeSprite.height = 64;
+  const hg = hazeSprite.getContext('2d'), hc = freqColor(0.5, 0.2), haze = hg.createLinearGradient(0, 0, 0, 64);
+  haze.addColorStop(0, rgba(hc, 0)); haze.addColorStop(0.3, rgba(hc, 0.12)); haze.addColorStop(0.5, rgba(hc, 0.55));
+  haze.addColorStop(0.7, rgba(hc, 0.12)); haze.addColorStop(1, rgba(hc, 0));
+  hg.fillStyle = haze;
+  hg.fillRect(0, 0, 2, 64);
   sprites = [];
   for (let k = 0; k < SPRITES; k++) {
     const c = freqColor(k / (SPRITES - 1), 0.2);
@@ -199,6 +221,7 @@ function stepSignal(t, dt) {
     sig.beat = 1;
     sig.beatCount++;
     if (t - lastAccent >= 0.34) { sig.accent = 0.8; lastAccent = t; }
+    horizonBeat();
     for (const d of directions) d.onBeat();
   }
   sig.accent *= Math.exp(-dt / 0.2);
@@ -286,19 +309,109 @@ function smooth(a, b, x) {
   const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
   return t * t * (3 - 2 * t);
 }
-/** The core: a glow at x, y that swells with the level and pulses on the beat (pulse 0..1); k scales it. */
-function drawCore(ctx, x, y, f, pulse, k = 1) {
-  const s = (0.12 + 0.35 * sig.level + 0.3 * pulse) * f * k;
-  ctx.globalAlpha = 0.45 + 0.5 * pulse;
-  ctx.drawImage(spriteOf(0.5), x - s, y - s, 2 * s, 2 * s);
+/** The spectrum at x (0..1), interpolated between bands, so a shape drawn from it is smooth, not stepped. */
+function bandSmooth(x) {
+  const p = Math.max(0, Math.min(1, x)) * (BANDS - 1), i = Math.floor(p), t = p - i;
+  return bands[i] * (1 - t) + bands[Math.min(BANDS - 1, i + 1)] * t;
+}
+
+// --- The horizon (in place of the core): a line of light across the view through the vanishing point, three ways (HORIZON). ---
+/** The horizon's shared state, stepped once a frame: its style, its eased brightness, the beat's ripples, and BANK's roll (radians) and drift (share of the height). */
+const horizon = { style: 'ridge', glow: 0.3, ripples: [], roll: 0, pitch: 0 };
+/** Moves the horizon on by dt: its brightness eases after the level; ripples run outward and fade; BANK leans and drifts slowly, and the others ease back level. */
+function stepHorizon(dt) {
+  horizon.glow += (sig.level - horizon.glow) * (1 - Math.exp(-dt / 0.25));
+  for (const r of horizon.ripples) { r.x += 0.8 * dt; r.a *= Math.exp(-dt / 0.7); }
+  horizon.ripples = horizon.ripples.filter((r) => r.x < 1.25 && r.a > 0.03);
+  // BANK: a slow sway on the flow clock (quicker when loud). In the app, the stereo balance could lean it toward the louder side.
+  const bank = horizon.style === 'bank';
+  const rollGoal = bank ? 0.11 * Math.sin(sig.flow * 0.42) : 0, pitchGoal = bank ? 0.05 * Math.sin(sig.flow * 0.27 + 1.2) : 0;
+  const k = 1 - Math.exp(-dt / 0.6);
+  horizon.roll += (rollGoal - horizon.roll) * k;
+  horizon.pitch += (pitchGoal - horizon.pitch) * k;
+}
+/** A beat: light starts running out both ways along the horizon from the centre. */
+function horizonBeat() { horizon.ripples.push({ x: 0, a: 1 }); }
+/** Draws the horizon for one view, centred on its camera's vanishing point and turned by its roll: the haze, the line (RIDGE: the spectrum's ridge with its body and a faint reflection; PULSE and BANK: a straight line lit by the spectrum), then the beat's ripples running along it. */
+function drawHorizon(ctx, v, cam) {
+  const { w, h } = v, g = horizon.glow, hw = w / 2, ridge = horizon.style === 'ridge';
+  // The line reaches past the stage's corners, so a banked horizon never shows its ends.
+  const reach = Math.hypot(w, h) / 2 + 8;
+  // The band a point `a` half-widths from the centre shows: bass in the middle, treble at the edges. The power gives the bass and mids more room and joins the two mirrored halves smoothly at the centre (no notch).
+  const bandOf = (a) => Math.pow(Math.min(1, a), 1.4);
+  // How high the ridge stands x px from the centre: its band's loudness, tapering off past the stage's edges.
+  const top = h * 0.2;
+  const heightAt = (x) => { const a = Math.abs(x) / hw; return ridge ? top * bandSmooth(bandOf(a)) * smooth(1.25, 0.95, a) : 0; };
+  ctx.save();
+  ctx.translate(cam.cx, cam.cy);
+  ctx.rotate(cam.roll);
+  // The haze: a band of soft light along the horizon, stronger as the music gets louder.
+  const hh = h * (0.08 + 0.07 * g);
+  ctx.globalAlpha = Math.min(1, 0.3 + 0.6 * g);
+  ctx.drawImage(hazeSprite, -reach, -hh, reach * 2, hh * 2);
+  // The line's colour along its length: frequency → colour mirrored from the centre, lit by each band's loudness, fading out past the stage's edges.
+  const lit = ctx.createLinearGradient(-reach, 0, reach, 0);
+  for (let i = 0; i <= 20; i++) {
+    const u = i / 20, a = (Math.abs(u * 2 - 1) * reach) / hw, x = bandOf(a);
+    lit.addColorStop(u, rgba(freqColor(x, 0.3), smooth(1.25, 0.95, a) * (0.3 + 0.7 * bandSmooth(x))));
+  }
+  ctx.strokeStyle = lit;
+  ctx.fillStyle = lit;
+  ctx.lineJoin = 'round';
+  ctx.lineCap = 'round';
+  const line = new Path2D();
+  if (ridge) {
+    for (let i = 0; i <= 120; i++) { const x = -reach + (2 * reach * i) / 120; if (i) line.lineTo(x, -heightAt(x)); else line.moveTo(x, -heightAt(x)); }
+  } else {
+    line.moveTo(-reach, 0); line.lineTo(reach, 0);
+  }
+  // Wide faint strokes under a fine bright one: a glowing line.
+  for (const [width, alpha] of [[16, 0.06], [6, 0.16], [1.4, 0.9]]) {
+    ctx.lineWidth = width * (1 + 0.6 * g);
+    ctx.globalAlpha = alpha;
+    ctx.stroke(line);
+  }
+  if (ridge) {
+    // The ridge's body (a faint fill down to the horizon), the flat horizon under it, and its reflection: upside down, half as tall, faint (a horizon over water).
+    const body = new Path2D(line);
+    body.lineTo(reach, 0); body.lineTo(-reach, 0); body.closePath();
+    ctx.globalAlpha = 0.12;
+    ctx.fill(body);
+    const base = new Path2D();
+    base.moveTo(-reach, 0); base.lineTo(reach, 0);
+    ctx.globalAlpha = 0.35; ctx.lineWidth = 1;
+    ctx.stroke(base);
+    ctx.save();
+    ctx.scale(1, -0.5);
+    ctx.globalAlpha = 0.22; ctx.lineWidth = 1.6;
+    ctx.stroke(line);
+    ctx.restore();
+  }
+  // The beat's ripples: light running out both ways along the horizon (riding the ridge's crest in RIDGE).
+  const rw = w * 0.06, rh = h * 0.02;
+  for (const r of horizon.ripples) {
+    for (const side of [-1, 1]) {
+      const x = side * r.x * hw;
+      ctx.globalAlpha = Math.min(1, r.a * 0.6);
+      ctx.drawImage(spriteOf(r.x), x - rw, -heightAt(x) - rh, rw * 2, rh * 2);
+    }
+  }
+  ctx.restore();
 }
 
 // --- Streams: a head rushing toward the camera with a trail of glyphs behind it (farther away). ---
 /** The point a place() function last wrote (shared, so placing allocates nothing). */
 const P = { x: 0, y: 0 };
-/** A place() for streams at (angle, r) round the axis, seen by `cam` (its centre cx, cy and focal length f, set each frame): writes where the stream is on screen at depth z into P. */
+/** A place() for streams at (angle, r) round the axis, seen by `cam` (its vanishing point cx, cy, focal length f and roll, set each frame): writes where the stream is on screen at depth z into P. The roll turns every stream with the horizon (BANK). */
 function radialPlace(cam) {
-  return (s, z) => { P.x = cam.cx + (Math.cos(s.angle) * s.r * cam.f) / z; P.y = cam.cy + (Math.sin(s.angle) * s.r * cam.f) / z; };
+  return (s, z) => { const a = s.angle + cam.roll; P.x = cam.cx + (Math.cos(a) * s.r * cam.f) / z; P.y = cam.cy + (Math.sin(a) * s.r * cam.f) / z; };
+}
+/** Points a blend's camera for this frame: its focal length, and its vanishing point and roll from the horizon (BANK drifts and banks them). */
+function aim(cam, v) {
+  cam.f = focal(v);
+  cam.cx = v.w / 2;
+  cam.cy = v.h / 2 + horizon.pitch * v.h;
+  cam.roll = horizon.roll;
 }
 /** A stream somewhere in the first `deep` units, on a random band; the blend sets where it sits (angle, r). */
 function makeStream(rand, deep) {
@@ -364,31 +477,30 @@ function makeFlight(cruise, levelK, surgeK) {
   return flight;
 }
 
-// --- C7 · SURGE: C1's streams round the core, and C5's speed on the beat (trails stretch, streaks show only in a surge). ---
+// --- C7 · SURGE: C1's streams round the vanishing point, and C5's speed on the beat (trails stretch, streaks show only in a surge). ---
 function blendSurge() {
   const v = setup('c7');
   const DEEP = 8, GAP = 0.32;
-  const cam = { cx: 0, cy: 0, f: 1 }, place = radialPlace(cam), flight = makeFlight(0.6, 1.3, 2.0);
-  let streams = [], rand, pulse = 0;
+  const cam = { cx: 0, cy: 0, f: 1, roll: 0 }, place = radialPlace(cam), flight = makeFlight(0.6, 1.3, 2.0);
+  let streams = [], rand;
   // C1's places: any angle, between just off the axis and past the screen's edge.
   const reset = (s) => { s.angle = rand() * TAU; s.r = 0.55 + rand() * 0.9; };
   v.onResize = () => { rand = rng(13); streams = Array.from({ length: 130 }, () => { const s = makeStream(rand, DEEP); reset(s); return s; }); };
   v.onResize();
   return {
-    onBeat() { pulse = 1; flight.beat(); for (const s of streams) if (s.band < 0.3) s.flare = 1; },
+    onBeat() { flight.beat(); for (const s of streams) if (s.band < 0.3) s.flare = 1; },
     draw(t, dt) {
       if (!v.visible) return;
       const { ctx, w, h } = v;
       clear(ctx, w, h);
-      cam.f = focal(v); cam.cx = w / 2; cam.cy = h / 2;
-      pulse *= Math.exp(-dt / 0.25);
+      aim(cam, v);
       flight.step(dt);
       const sp = flight.speed;
       // Faster means farther between trail glyphs (the trail stretches); streaks show only above cruising speed.
       const gap = GAP * (1 + 0.5 * Math.max(0, sp - 1));
       const streak = 0.3 * smooth(1.1, 2.2, sp);
+      drawHorizon(ctx, v, cam);
       ctx.lineCap = 'round';
-      drawCore(ctx, cam.cx, cam.cy, cam.f, pulse);
       for (const s of streams) {
         if (stepStream(s, dt, rand, 0.4 + 0.6 * sp, gap)) { s.z = DEEP + rand(); reset(s); }
         if (streak > 0.02) {
@@ -406,8 +518,8 @@ function blendSurge() {
 function blendLayers() {
   const v = setup('c8');
   const DEEP = 8, GAP = 0.32, DEEP_BACK = 12, SPECKS = 220;
-  const cam = { cx: 0, cy: 0, f: 1 }, place = radialPlace(cam), flight = makeFlight(0.6, 1.3, 2.0);
-  let streams = [], specks = [], rand, pulse = 0;
+  const cam = { cx: 0, cy: 0, f: 1, roll: 0 }, place = radialPlace(cam), flight = makeFlight(0.6, 1.3, 2.0);
+  let streams = [], specks = [], rand;
   const reset = (s) => { s.angle = rand() * TAU; s.r = 0.55 + rand() * 0.9; };
   // The warp's specks go anywhere across the view (r spread evenly over the disc), each on its own band.
   const resetSpeck = (d) => { d.angle = rand() * TAU; d.r = 0.3 + Math.sqrt(rand()) * 2.4; d.band = rand(); };
@@ -418,15 +530,15 @@ function blendLayers() {
   };
   v.onResize();
   return {
-    onBeat() { pulse = 1; flight.beat(); for (const s of streams) if (s.band < 0.3) s.flare = 1; },
+    onBeat() { flight.beat(); for (const s of streams) if (s.band < 0.3) s.flare = 1; },
     draw(t, dt) {
       if (!v.visible) return;
       const { ctx, w, h } = v;
       clear(ctx, w, h);
-      cam.f = focal(v); cam.cx = w / 2; cam.cy = h / 2;
-      pulse *= Math.exp(-dt / 0.25);
+      aim(cam, v);
       flight.step(dt);
       const sp = flight.speed;
+      drawHorizon(ctx, v, cam);
       ctx.lineCap = 'round';
       // The warp behind: each speck's length (in depth) grows with the speed, from a dot at cruise to a long line in a surge.
       const stretch = 0.05 + 0.45 * Math.max(0, sp - 0.9);
@@ -438,7 +550,6 @@ function blendLayers() {
         drawStreak(ctx, v, d, za, zb, place, 0.42 * fogOf((za + zb) / 2, DEEP_BACK) * (0.4 + 0.6 * e), Math.max(0.7, Math.min(2.5, sizeAt(cam.f, za) * 0.06)));
       }
       // The code in front keeps C1's pace, nudged a little by the flight so the two layers feel joined.
-      drawCore(ctx, cam.cx, cam.cy, cam.f, pulse);
       for (const s of streams) {
         if (stepStream(s, dt, rand, 0.85 + 0.15 * sp, GAP)) { s.z = DEEP + rand(); reset(s); }
         drawStream(ctx, v, s, cam.f, DEEP, GAP, place);
@@ -448,33 +559,32 @@ function blendLayers() {
   };
 }
 
-// --- C9 · STRETCH: crisp code far off, near the core; as a stream nears you its trail melts into a streak. Surges push the melting further in. ---
+// --- C9 · STRETCH: crisp code far off, near the horizon; as a stream nears you its trail melts into a streak. Surges push the melting further in. ---
 function blendStretch() {
   const v = setup('c9');
   const DEEP = 8, GAP = 0.3;
-  const cam = { cx: 0, cy: 0, f: 1 }, place = radialPlace(cam), flight = makeFlight(0.65, 1.2, 1.5);
-  let streams = [], rand, pulse = 0, zCrisp = 1.7;
-  // Wider than C1 (toward C5's "everywhere"), keeping a clear space round the core.
+  const cam = { cx: 0, cy: 0, f: 1, roll: 0 }, place = radialPlace(cam), flight = makeFlight(0.65, 1.2, 1.5);
+  let streams = [], rand, zCrisp = 1.7;
+  // Wider than C1 (toward C5's "everywhere"), keeping a clear space round the vanishing point.
   const reset = (s) => { s.angle = rand() * TAU; s.r = 0.3 + Math.sqrt(rand()) * 1.9; };
   v.onResize = () => { rand = rng(23); streams = Array.from({ length: 180 }, () => { const s = makeStream(rand, DEEP); reset(s); return s; }); };
   v.onResize();
   // How crisp a glyph at depth z is: code (1) beyond zCrisp, all light (0) by 0.65.
   const crispAt = (z) => smooth(0.65, zCrisp, z);
   return {
-    onBeat() { pulse = 1; flight.beat(); for (const s of streams) if (s.band < 0.3) s.flare = 1; },
+    onBeat() { flight.beat(); for (const s of streams) if (s.band < 0.3) s.flare = 1; },
     draw(t, dt) {
       if (!v.visible) return;
       const { ctx, w, h } = v;
       clear(ctx, w, h);
-      cam.f = focal(v); cam.cx = w / 2; cam.cy = h / 2;
-      pulse *= Math.exp(-dt / 0.25);
+      aim(cam, v);
       flight.step(dt);
       const sp = flight.speed;
       const gap = GAP * (1 + 0.4 * Math.max(0, sp - 1));
-      // A surge pushes the melting further in: the streaks reach toward the core, then ease back with the speed.
+      // A surge pushes the melting further in: the streaks reach toward the horizon, then ease back with the speed.
       zCrisp = 1.7 + 0.5 * Math.max(0, sp - 1);
+      drawHorizon(ctx, v, cam);
       ctx.lineCap = 'round';
-      drawCore(ctx, cam.cx, cam.cy, cam.f, pulse, 0.9);
       for (const s of streams) {
         if (stepStream(s, dt, rand, 0.5 + 0.5 * sp, gap)) { s.z = DEEP + rand(); reset(s); }
         // The streak covers the melted part of the trail: from the head (or where it passed you) to where the code turns crisp.
@@ -543,6 +653,18 @@ PALETTES.forEach(([name, a, c, b], i) => {
   sw.appendChild(btn);
 });
 
+// --- The horizon switch (RIDGE, PULSE, BANK): one horizon for all three blends. ---
+const hz = document.getElementById('horizons');
+[['ridge', 'RIDGE'], ['pulse', 'PULSE'], ['bank', 'BANK']].forEach(([id, name]) => {
+  const btn = document.createElement('button');
+  btn.type = 'button'; btn.textContent = name; btn.setAttribute('aria-pressed', String(id === horizon.style));
+  btn.addEventListener('click', () => {
+    horizon.style = id;
+    hz.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === btn)));
+  });
+  hz.appendChild(btn);
+});
+
 // --- The clock and the frame loop: one track time for all three (the audio clock while sound plays, heard time: less the output latency). ---
 let base = 0;
 const clock = () => (audio ? audio.currentTime - audioStart - (audio.outputLatency || 0) : performance.now() / 1000 + base);
@@ -557,6 +679,7 @@ function frame() {
   const t = Math.max(0, clock()), dt = Math.min(0.1, Math.max(0, t - last));
   last = t;
   stepSignal(t, dt);
+  stepHorizon(dt);
   for (const d of directions) d.draw(t, dt);
   const bar = Math.floor((t % LOOP) / BAR);
   if (bar !== shownBar) { shownBar = bar; sectionEl.textContent = `BAR ${bar + 1} OF 16 · ${sectionOf(t)}`; }

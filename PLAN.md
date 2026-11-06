@@ -266,4 +266,11 @@ These are targets, measured from the first build and recorded in ARCHITECTURE §
   - C8 LAYERS: C1's code in front, as calm as C1; C5's warp behind it as thin lines over the whole view, specks at cruise and streaks in a surge;
   - C9 STRETCH (by distance): crisp code far off near the core, trails melting into streaks as they near you; surges push the melting further in.
 
-  Waiting for the user's pick.
+  The user: "can you have there be a dynamic horizon instead of the light beaming in the centre?" The core is replaced (same page, republished) by a horizon through the vanishing point, three ways, switched by HORIZON for all three blends:
+  - RIDGE: the horizon is the spectrum, mirrored from the centre (bass in the middle, treble at the edges), rising into peaks where loud, with a body, a flat base line and a faint reflection;
+  - PULSE: a straight line of light, lit along its length by the spectrum, brighter with the level;
+  - BANK: PULSE's line, and the whole view banks (up to about 6°) and drifts slowly on the flow clock; in the app, the stereo balance could lean it.
+
+  In all three, a soft band of haze follows the level, and each beat sends light running out along the horizon from the centre.
+
+  Waiting for the user's pick (a blend and a horizon).

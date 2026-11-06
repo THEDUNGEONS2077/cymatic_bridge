@@ -8,9 +8,11 @@
  * cyberdeck's catalog.ts / registry.ts split.
  *
  * PLEXUS (0.4.0, S4) is the first real scene: a flight through a plexus
- * (the user's pick of the mock-ups: B2 FLIGHT). TEST, SIGNAL drawn plainly,
- * stays as a development scene, listed last. CODE RAIN EQ and CYMATIC PLATE
- * come next.
+ * (the user's pick of the mock-ups: B2 FLIGHT). CODE RAIN EQ (0.5.0, S5) is
+ * the second: a tunnel of code out of a vanishing point on the horizon, a
+ * warp behind it, and a heart monitor scanning the horizon (the user's picks:
+ * C8 LAYERS, MONITOR, S5 BOUNCE). TEST, SIGNAL drawn plainly, stays as a
+ * development scene, listed last. CYMATIC PLATE comes next.
  */
 import { DEFAULT_PALETTE, type PaletteId } from './palettes';
 import { BALANCED, type ReactProfile } from './signal/signal';
@@ -61,6 +63,14 @@ export const SCENES: readonly SceneInfo[] = [
     defaults: { palette: DEFAULT_PALETTE, glow: 'high', sensitivity: 1, trails: 0, zoom: 1 },
     profile: BALANCED,
     trails: true,
+  },
+  {
+    id: 'coderain',
+    name: 'CODE RAIN EQ',
+    // No trails: the code reads clearest crisp (PLEXUS's lesson), and the scene draws straight onto the canvas.
+    defaults: { palette: DEFAULT_PALETTE, glow: 'high', sensitivity: 1, trails: 0, zoom: 1 },
+    profile: BALANCED,
+    trails: false,
   },
   {
     id: 'test',

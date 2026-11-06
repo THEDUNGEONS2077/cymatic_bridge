@@ -25,8 +25,9 @@ To show the shared tab's video title in the bar, add the small **CYMATIC TITLE B
 - **S3, eight palettes and SETTINGS:** palette, glow, sensitivity, trails and zoom per scene, export/import and diagnostics.
 
 - **S4, PLEXUS:** a pulse travelling forward through a neural net that grows and shrinks with the music, branching on the beat and leaving glowing marks.
+- **S5, CODE RAIN EQ:** a tunnel of code rushing out of a vanishing point on the horizon, each stream listening to its own band, a warp behind it, and a heart monitor scanning the horizon: each beat draws a heartbeat, and the scan's beam lights the code it passes.
 
-The roadmap is in [PLAN.md](PLAN.md). The scenes CODE RAIN EQ and CYMATIC PLATE come next.
+The roadmap is in [PLAN.md](PLAN.md). The scene CYMATIC PLATE comes next.
 
 ## Development
 ```bash

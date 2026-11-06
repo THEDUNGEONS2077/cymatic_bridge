@@ -7,6 +7,7 @@ How cymatic_bridge is built: the user's method and their choices, each with wher
 - **cyberdeck_terminal is the reference** "for how everything in this project will be done": the stack, layering, rules, docs, tests and release flow. The scenes are inspired by its wallpapers.
 - **One phase at a time, each its own release**, starting with "the bare bones of signal" (S1). The user is asked before each phase starts.
 - **Scenes start from a reference image or from my 2–3 mock-up directions** (R25). PLEXUS gets animated mock-ups to pick from before it's built.
+- **Mock-ups go as many rounds as the user wants,** each narrowing one part. CODE RAIN EQ began as scattered columns (R24) and became, round by round in the user's words, a tunnel of code with a heart monitor on its horizon (eight rounds: DESIGN.md § 4.3).
 - **Screenshots, then the user's tweaks.** I check every build by eye first (the walk's screenshots), then the user looks at it on real YouTube music. Their words are the spec: quote them in CHANGELOG and DESIGN.md.
 - **Ask before anything public:** the repo's creation, every push, deploy, tag or release. Committing locally is fine.
 

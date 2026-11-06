@@ -303,5 +303,7 @@ These are targets, measured from the first build and recorded in ARCHITECTURE §
   - S6 SWELL: the beam's width and brightness follow the bass, and each beat bursts it wider; slim in the breakdown.
 
   First pass: WAKE and REVEAL lingered 0.9 s and 1.6 s against a 2 s sweep, so the whole view stayed lit and they looked alike. Lingering must stay well under the sweep.
-
-  Waiting for the user's pick, then the WebGL build on SIGNAL.
+- **2026-11-06: S5 built as 0.5.0 (build 10), CODE RAIN EQ.** The user: "Let's go with S5 BOUNCE". In WebGL on SIGNAL (`scene/scenes/coderain/`): C8 LAYERS' code and warp, the straight horizon whose glow reacts, and the heart monitor whose scan bounces, its beam lighting the code (ARCHITECTURE.md § 15, DESIGN.md § 4.3).
+  - **Change to R24's CODE RAIN EQ:** "scattered columns" became a tunnel of streams round a vanishing point, each still on its own band, coloured by it, faster and longer when loud, heads flaring on the beat; plus the warp, the horizon and its heart monitor, from the rounds above.
+  - No trails (TRAILS is hidden for it). Measured as fast as PLEXUS (software-rendered, under fuller test music).
+  - 70 unit tests; the walk (11 paths) passes headless, now through CODE RAIN EQ, including a lost context while it shows.

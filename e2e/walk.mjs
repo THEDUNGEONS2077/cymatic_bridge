@@ -341,7 +341,7 @@ try {
     await page.keyboard.press('Escape');
   });
 
-  await path('PLEXUS: opens first, draws, crossfades to TEST and back (← / →), survives a resize', async () => {
+  await path('PLEXUS: opens first, draws, crossfades to CODE RAIN EQ and TEST and back (← / →), survives a resize', async () => {
     if ((await stage('scene')) !== 'plexus') throw new Error(`first scene: ${await stage('scene')}`);
     const px = await stage('pixels');
     if (px.lit < 0.003) throw new Error(`PLEXUS drew nothing: ${JSON.stringify(px)}`);
@@ -349,8 +349,23 @@ try {
     await page.keyboard.press('ArrowRight');
     await page.waitForTimeout(300);
     // Mid-crossfade: both draw, nothing breaks.
+    if ((await stage('scene')) !== 'coderain') throw new Error('→ didn’t reach CODE RAIN EQ');
+    await page.waitForTimeout(2500);
+    const rain = await stage('pixels');
+    if (rain.lit < 0.003) throw new Error(`CODE RAIN EQ drew nothing: ${JSON.stringify(rain)}`);
+    await page.screenshot({ path: join(shots, '07-coderain.png') });
+    // Its glyph sheet and trace are uploaded again after a lost context (the stage builds the scene anew).
+    await stage('lose');
+    await page.waitForTimeout(1500);
+    if ((await stage('stats', 500)).durations.length < 5) throw new Error('CODE RAIN EQ not drawing after the restore');
+    if ((await stage('pixels')).lit < 0.002) throw new Error('CODE RAIN EQ blank after the restore');
+    await page.keyboard.press('ArrowRight');
+    await page.waitForTimeout(300);
     if ((await stage('scene')) !== 'test') throw new Error('→ didn’t reach TEST');
     await page.waitForTimeout(700);
+    await page.keyboard.press('ArrowLeft');
+    await page.waitForTimeout(900);
+    if ((await stage('scene')) !== 'coderain') throw new Error('← didn’t come back to CODE RAIN EQ');
     await page.keyboard.press('ArrowLeft');
     await page.waitForTimeout(900);
     if ((await stage('scene')) !== 'plexus') throw new Error('← didn’t come back');

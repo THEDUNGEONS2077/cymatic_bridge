@@ -74,5 +74,24 @@ The first real scene: a pulse travelling forward through a neural net. It was fo
 | Glow | A link's glow width follows its importance: slim for a quiet link, GLOW's full width for a marked or loud one (0.4.1: crisper, and much less to draw) |
 | Trails | Off by default. On, warp streaks push out from the centre (faster when loud), shown at 40% behind the live picture and lasting 0.05–0.6 s |
 
-### 4.3 Coming
-CODE RAIN EQ (S5) and CYMATIC PLATE (S6), described in PLAN.md R24. Each starts from 2–3 mock-up directions or a reference image.
+### 4.3 CODE RAIN EQ (0.5.0)
+A tunnel of code rushing out of a vanishing point on the horizon, a warp behind it, and a heart monitor scanning the horizon. It was found over eight rounds of mock-ups (`mockups/code-rain*/`):
+- **Directions:** A CASCADE, B STRATA, C TUNNEL. "Let's try 6 different mock ups for TUNNEL".
+- **TUNNEL variations:** C1 RUSH to C6 ECHO. "can you do a combination of C1 and C5?" gave three blends (SURGE, LAYERS, STRETCH): "I like Layers - C8".
+- **The horizon:** "can you have there be a dynamic horizon instead of the light beaming in the centre?" (RIDGE, PULSE, BANK), then "keep the straight line and get rid off the bouncing line above it, have the horizon straight line react by how it glows".
+- **The heartbeat:** "I want the horizon the change as if it's a heartbeat pattern line" (OUTWARD, MONITOR): "I like monitor". Six MONITOR variations: "I like M4 SCAN". Six SCAN variations: "Let's go with S5 BOUNCE".
+
+| Part | How it looks |
+|---|---|
+| The view | Down a tunnel from the vanishing point, which sits on the horizon in the middle of the view. Things fade in over the far third and out just before the camera |
+| The code | 120 streams of glyphs round the axis, each on its own band and coloured by it, the head near-white. Louder: faster, with a longer trail (5–23 glyphs). The treble flickers the glyphs; a beat flares the bass streams' heads with a soft glow. The glyphs are cyberdeck's MATRIX RAIN set: mirrored half-width katakana where a system font has them, digits, a few letters and symbols, each with a soft glow as strong as GLOW |
+| The warp | 220 thin streaks anywhere across the view, behind the code and dimmer. Their length follows the flight: dots at cruise, long streaks when a beat surges it. The code keeps its own pace, nudged by the flight, so the layers feel joined |
+| The flight | Eases toward a cruise plus the level plus the beat's surge: up in 0.1 s, down over 0.35 s. It never jumps |
+| The horizon | One straight line across the view, through the vanishing point. It never moves; its glow reacts: a halo, taller and brighter where its band is loud (bass in the middle, treble toward the edges; squared, so quiet stays calm), under a faint haze, all brighter with the level |
+| The heartbeat | Flat between beats. Each beat draws a heartbeat: a dip, a sharp spike 28 ms after the kick (taller for a stronger beat), a dip, then a rounded bump. With no beat for 1.6 s, a small resting heartbeat every 1.1 s, so the line never flatlines |
+| The scan | A bright point sweeps across the horizon and back, 2 s each way, writing the heartbeat (mirror-wise on the way back). The trace fades behind it over about a second |
+| The beam | The point carries a soft column of light up and down the view, brightest at the horizon, flaring with each spike. The code under it lights up |
+| Trails | None: the code reads clearest crisp |
+
+### 4.4 Coming
+CYMATIC PLATE (S6), described in PLAN.md R24. It starts from 2–3 mock-up directions or a reference image.

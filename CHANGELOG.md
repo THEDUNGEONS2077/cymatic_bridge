@@ -2,6 +2,19 @@
 
 Each release, in the user's words where they gave them. The build number counts every release.
 
+## 0.5.0 (build 10)
+**CODE RAIN EQ, the second scene.** It was found over eight rounds of mock-ups:
+- three directions, then six TUNNEL variations; "can you do a combination of C1 and C5?" gave three blends, and "I like Layers - C8";
+- "can you have there be a dynamic horizon instead of the light beaming in the centre?", then "keep the straight line and get rid off the bouncing line above it, have the horizon straight line react by how it glows";
+- "I want the horizon the change as if it's a heartbeat pattern line": "I like monitor", "I like M4 SCAN", and "Let's go with S5 BOUNCE".
+
+What it is:
+- **A tunnel of code.** 120 streams of glyphs (mirrored katakana, digits and symbols) rush out of a vanishing point on the horizon, each listening to its own band: louder means faster, with a longer trail. The treble flickers the glyphs, and a beat flares the bass streams' heads.
+- **A warp behind it.** Thin streaks of light carry the flight's speed: dots at cruise, long streaks when a beat surges it.
+- **The horizon.** One straight line of light. Its glow swells and brightens where the music is loud (bass in the middle, treble toward the edges), and with the level.
+- **A heart monitor on it.** Each beat draws a heartbeat: a sharp spike with the kick, then a rounded bump. With no beat, a slow resting one. A scan bounces across and back writing it, carrying a beam that lights the code it passes.
+- **No trails,** and it draws straight onto the screen, as PLEXUS does. Measured as fast as PLEXUS.
+
 ## 0.4.4 (build 9)
 **Fix: the wrong tip about Chrome's sharing bar is gone.** The user: "I can't seem to hide the sharing tab bar". 0.4.3 said the bar hides with its own Hide button. That button belongs to the *screen*-sharing bar. The tab-sharing bar has only Stop and "Share this tab instead", and Chrome makes it impossible to close (its source: not closeable, never expires). The tip is removed, and the README now says so plainly.
 

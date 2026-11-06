@@ -11,7 +11,7 @@
  *     new scenes both draw, and the composite pass mixes them; then the old
  *     one goes;
  *   - the composite pass: the scene's target onto the canvas, dithered.
- *     A "direct" scene (types.ts SceneFactory.direct: PLEXUS) skips it
+ *     A "direct" scene (types.ts SceneFactory.direct: PLEXUS, CODE RAIN EQ) skips it
  *     outside a crossfade and draws straight onto the canvas: a full-screen
  *     pass and a buffer's clear less a frame (0.4.2, measured);
  *   - a lost context: `webglcontextlost` (preventDefault, or it never comes

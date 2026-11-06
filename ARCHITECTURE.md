@@ -41,6 +41,8 @@ src/
     stage.ts        WebGL 2: signal texture, scenes, trails, crossfade, composite, lost context
     gl/             program.ts, targets.ts, signalTexture.ts
     shaders/        signal.glsl (the SIGNAL include), fullscreen.vert, composite.frag
+    scenes/plexus/  PLEXUS (0.4.0)
+    scenes/coderain/ CODE RAIN EQ (0.5.0)
     scenes/test/    TEST, the development scene
     registry.ts     scene id → engine
   store/            kv, idbKV, persist (boot), settings (zustand, saved), live (session state), instance
@@ -200,8 +202,15 @@ The user, on S1: "it doesn't really feel on time". The visuals lagged the sound.
 | 0.4.2: PLEXUS direct (no stage target or composite outside a crossfade) | 13.1–14.4 |
 | (the stage alone, drawing nothing: the composite's share of a frame) | 38.3 |
 
+**0.5.0 (2026-11-06), CODE RAIN EQ,** software-rendered at 1600×900, headless, under a fuller test track (kick, snare, hats, a bassline, a pad; `getDisplayMedia` replaced as in the walk), run back to back with PLEXUS (two runs each). CODE RAIN EQ is as fast as PLEXUS:
+
+| Scene | fps | Drawing, CPU side (p50 / p95) |
+|---|---|---|
+| PLEXUS | 11.0, 11.4 | 0.4 / 0.5–0.8 ms |
+| CODE RAIN EQ | 12.3, 11.9 | 0.3 / 0.5–0.6 ms |
+
 ## 10. Testing
-- **`npm run check`:** typecheck, lint and Vitest. There are 53 tests:
+- **`npm run check`:** typecheck, lint and Vitest. There are 70 tests:
   - SIGNAL on synthetic analyser frames:
     - a sine lands in its band;
     - the tilt;
@@ -222,6 +231,14 @@ The user, on S1: "it doesn't really feel on time". The visuals lagged the sound.
     - it grows with loudness and keeps a spine when quiet;
     - the main pulse runs forward, near the centre, never back;
     - branches mark their links and end.
+  - CODE RAIN EQ's rain and monitor:
+    - the heartbeat's shape: flat before the beat, the spike within 30 ms of it, the dip, the rounded T;
+    - the resting heartbeat comes only after 1.6 s of quiet, then every 1.1 s, and a beat resets it;
+    - the scan bounces at a steady pace (never a jump), turns at the edges, writes every column on each pass at the moment it crossed it, and reports the columns it wrote;
+    - the same heartbeat at 60 and 144 frames a second;
+    - the rain is the same for a seed; katakana are picked twice as often; a loud stream runs faster with a longer trail and comes back far off only once its whole trail has passed; glyphs flicker as often as asked; specks wrap and stretch with the speed;
+    - the flight lunges on a beat and glides back to its cruise, never jumping;
+    - a band read from the signal, interpolated, with SENSITIVITY.
   - The title bridge:
     - cleaning titles;
     - reading labels;
@@ -236,7 +253,7 @@ The user, on S1: "it doesn't really feel on time". The visuals lagged the sound.
     - the meter;
     - H, kept across a reload;
     - SETTINGS: a palette recolours the picture and the bar; glow and the steppers; kept across a reload; RESET; an EXPORT / IMPORT round trip; a foreign file refused; COPY DIAGNOSTICS on the clipboard; axe with the panel open;
-    - ← / →;
+    - ← / → through PLEXUS, CODE RAIN EQ (which must draw, and draw again after a lost context: its glyph sheet and trace are uploaded anew) and TEST;
     - hidden, where nothing is drawn and it resumes;
     - a lost context restored;
     - the speed report.
@@ -251,7 +268,8 @@ The user, on S1: "it doesn't really feel on time". The visuals lagged the sound.
   - **It runs headed when there's a display.** Headless Chrome captures a tab's sound as silence (PLAYBOOK § 2). Covered by another window on the Windows desktop, WSLg's windows run at about 1 frame a second, and the sound paths fail; run it with nothing in front of it.
 
 ## 11. Known limits and next steps
-- **Two scenes:** PLEXUS and TEST (development). S5 brings CODE RAIN EQ.
+- **Three scenes:** PLEXUS, CODE RAIN EQ and TEST (development). S6 brings CYMATIC PLATE.
+- **CODE RAIN EQ's katakana need a system font** (MS Gothic on Windows). Without one, it draws only the digits, letters and symbols.
 - **The title bridge must be loaded unpacked** (Developer mode); it isn't in the Chrome Web Store.
 - **GPU time isn't measured** (Chrome hides the timer query); the meter's fps and draw p95 are the guide.
 - **Mono tabs:** both analysers hear the one channel, so balance stays centred.
@@ -295,7 +313,7 @@ A webpage can't read another tab's title, so the shared tab names itself.
   - `draw.glsl` follows it in front of fragment shaders only: `glowLine` and `dither`, which need derivatives and `gl_FragCoord`;
   - `sceneProgram(frag)` builds a full-screen pass; `sceneGeometryProgram(vert, frag)` builds a scene's own geometry.
 - **`SceneFrame`** gives a draw the signal, the size, the pixel ratio, `zoom`, `sensitivity`, the time and `dt`. Its `bind(program)` sets every uniform the include declares.
-- **A direct scene** (`SceneFactory.direct`, 0.4.2; PLEXUS) reads no last frame from the stage and dithers its own light (`draw.glsl` `ditherOut`: each fragment rounded up or down at random, so the average is exact). Outside a crossfade, the stage draws it straight onto the canvas: no target, no composite. During a crossfade it goes through its target like any scene.
+- **A direct scene** (`SceneFactory.direct`, 0.4.2; PLEXUS, and CODE RAIN EQ in 0.5.0) reads no last frame from the stage and dithers its own light (`draw.glsl` `ditherOut`: each fragment rounded up or down at random, so the average is exact). Outside a crossfade, the stage draws it straight onto the canvas: no target, no composite. During a crossfade it goes through its target like any scene.
 - **A scene may draw in passes of its own** (PLEXUS does). It keeps its own buffers, and must rebind the stage's target at the end: it reads `gl.FRAMEBUFFER_BINDING` at the start, binds it again for its last pass, and unbinds the textures it bound.
 
 ## 14. PLEXUS (`scene/scenes/plexus/`, 0.4.0)
@@ -323,3 +341,30 @@ A webpage can't read another tab's title, so the shared tab names itself.
   - `camera.glsl`: depth ahead (wrapped), the camera's sideways position, the projection and the fog;
   - `link.vert` / `link.frag`: cyberdeck's glowing line on screen-space quads, with round ends;
   - `node.vert` / `node.frag`: a near-white core, a body and a halo, all Gaussians.
+
+## 15. CODE RAIN EQ (`scene/scenes/coderain/`, 0.5.0)
+- **`rain.ts`** (pure, tested) is the code, the warp and the flight:
+  - **the streams:** 120 round the axis (0.55–1.45 from it), each on one band for life. A stream is a head and up to 23 glyphs behind it, 0.32 apart in depth. It moves at (0.5 + 3.5 × its band's loudness) × the flight's share (0.85 + 0.15 × the flight's speed), and its length eases (0.3 s) toward 5 + 18 × the loudness. The treble flickers its glyphs (0.5–5.5 changes a second). A beat flares the heads of the streams below band 0.3. Once its whole trail has passed the camera, it's placed again beyond the far end (8 deep) at a new angle;
+  - **the specks:** 220 anywhere out to 2.7 from the axis, 12 deep, moving at (1 + 1.5 × loudness) × the flight's speed, reaching 0.05 + 0.45 × (speed − 0.9) back;
+  - **the flight:** its speed eases toward 0.6 + 1.3 × level + 2 × surge (a beat sets the surge to 1; it fades over 0.35 s): up over 0.1 s, down over 0.35 s.
+- **`monitor.ts`** (pure, tested) is the heart monitor:
+  - **the heartbeat:** Q −0.1 at 12 ms, R 1 at 28 ms (with the kick), S −0.3 at 46 ms, flat by 66 ms, then a rounded T 0.26 high from 120 to 300 ms. No P bump: it comes before the beat. A real beat is 0.65–1 high by its strength;
+  - **resting:** after 1.6 s without a beat, a 0.32 beat every 1.1 s;
+  - **the scan:** 1,024 columns. Each frame it moves dt / 2 s of the view, turning round at either edge (BOUNCE), and writes each column it crosses with the heartbeat at the moment it crossed it, so the trace is the same at any frame rate. Each column keeps when it was written; the step reports the range it wrote.
+- **`glyphs.ts`** draws the glyph sheet once per worker (OffscreenCanvas 2D): the 46 katakana mirrored (when `canDraw` finds a system font for them, cyberdeck's test) and 30 base glyphs, in 64-px cells 16 across, white. The bare shapes go in R and a 6-px blur in G: one RG8 texture, mipmapped.
+- **`engine.ts`**, each frame:
+  1. the music: the level, each stream's and speck's band (interpolated, × SENSITIVITY), the treble, and a new beat (beatCount): the surge, a heartbeat, the flares;
+  2. the flight, the streams, the specks and the monitor step;
+  3. uploads: 120 streams × 8 floats, 2,880 glyph cells (bytes), 220 specks × 4 floats (bufferSubData into buffers made once), and the trace's new columns (texSubImage2D into an RG32F texture: height, when written);
+  4. drawing, additive, straight onto the canvas (direct; every shader dithers its own light):
+     - the specks: 220 instanced 4-vertex strips;
+     - the horizon: a full-screen triangle scissored to the band from 0.1 of the height below the horizon to 0.17 above it (haze, glow, line, trace);
+     - the beam and its spark: a full-screen triangle scissored to the beam's strip;
+     - the code: 2,880 instances. The stream attributes have divisor 24 (TRAIL), so each run of 24 instances is one stream, and `gl_InstanceID % 24` is the glyph's place in it; the glyph's cell has divisor 1.
+- **The trace takes the nearest segment, not the sum.** Drawn as 1,023 additive segment quads, a polyline doubles its light at every joint (each quad reaches past its ends for the glow): beaded, and too bright. `horizon.frag` instead finds, for each pixel in the band, the nearest segment among the columns within reach (about 15) and lights the pixel by that one distance. The line is even, and the spike stays sharp. Neighbours written more than 0.25 s apart (the scan turned between them) aren't joined.
+- **Shaders:**
+  - `view.glsl`: the projection and the fog;
+  - `glyph.vert` / `glyph.frag`: the glyphs, the heads' flares, the beam's light on the code;
+  - `speck.vert` / `speck.frag`: streaks bright at the near end, fading to nothing at the far end;
+  - `horizon.frag`: the haze, the glow, the line and the trace;
+  - `beam.frag`: the beam and the spark.

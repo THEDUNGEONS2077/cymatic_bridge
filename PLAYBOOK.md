@@ -34,6 +34,8 @@ Lessons from cymatic_bridge, written so other projects can reuse them. cyberdeck
 
 **2.5 Background tabs' timers run about once a second.** A WebAudio test signal scheduled half a second ahead plays with gaps from a background tab: queue it seconds ahead (`ctx.currentTime + 3`).
 
+**2.7 A loaded machine stalls headless screenshots.** When the computer is busy (another session's build), software rendering falls behind: screenshots time out, frames come seconds apart, and a page whose time steps are capped (0.1 s) drops beats and squeezes its spacing. For mock-ups, hold the page's own loop and step it yourself at a steady 60 fps, with drawing muted except the frame you capture: the pictures are then exact, whatever the load.
+
 ## 3. Audio features for visuals
 **3.1 One gain for the whole spectrum, plus a tilt.** Per-band auto-gain makes every band look loud, so hiss reads like a kick. One peak follower (up at once, down 2.5 dB/s, with a floor so silence stays dark) keeps the music's shape. A +3.5 dB/octave tilt above 1 kHz levels music's natural fall, so the range weighs evenly. *Where:* `lib/signal/dynamics.ts`, `bands.ts`.
 
@@ -81,3 +83,16 @@ Lessons from cymatic_bridge, written so other projects can reuse them. cyberdeck
 **6.2 When a build is wrong, ask before rebuilding.** PLEXUS's second build, more motion everywhere, was "too chaotic / busy". Four questions (the view, what the pulse is, how the net changes, what felt wrong) gave the third design, which landed: "This is perfect". Motion should have one focus; the rest is the stage.
 
 **6.3 Perspective crowds the far field into the centre.** In a flight, everything far away projects near the middle; additive light piles up into a white knot. Fade the far field over a long curve (the far half), not just its last stretch.
+
+**6.4 Rounds can go many deep.** CODE RAIN EQ took eight: directions, variations, a blend of two variations, then the user reshaped one part at a time (the centre's light, the horizon, the heartbeat, the monitor, the scan). "A combination" has many readings: show two or three ways to mix. When a request has several readings, show them on one page (side by side, or a switch over every canvas) rather than asking.
+
+**6.5 Lingering light must stay well under its cycle.** A scan whose light lingered on what it had passed: at 0.9 s and 1.6 s against a 2 s sweep, the whole view stayed lit, and "dark until the beam finds it" looked like the other variation. Keep a linger to a third of its cycle or less.
+
+## 7. Drawing techniques
+**7.1 A glowing polyline: take the nearest segment, don't add them.** Drawn as additive quads, a polyline's segments overlap at every joint (and each quad reaches past its ends for the glow), so the line beads and brightens where it bends. In a fragment pass over the line's band, find the nearest segment among the few within reach of the pixel and light it by that one distance: the line is even, and sharp spikes stay sharp. *Where:* CODE RAIN EQ's heartbeat (`horizon.frag`).
+
+**7.2 Instances in runs.** Give per-object attributes a divisor of N and draw N instances per object: each run of N shares the object's attributes, and `gl_InstanceID % N` is the item's place in it. Per-item data takes divisor 1. No per-item buffer of positions. *Where:* a stream's glyphs (`coderain/engine.ts`).
+
+**7.3 Text as a two-channel sheet.** Draw the glyphs once, white: the shapes into R, a blurred copy into G (RG8, mipmapped). The shader colours them and sets the glow's strength (GLOW) without drawing text again, and mipmaps keep small far glyphs from shimmering. Build the sheet once per worker and keep it: a scene change or a lost context only uploads it again. *Where:* `coderain/glyphs.ts`.
+
+**7.4 Scissored full-screen passes.** A pass that lights only a band (a horizon) or a strip (a beam) can still be one full-screen triangle: set the scissor box to the band, and only those pixels run.

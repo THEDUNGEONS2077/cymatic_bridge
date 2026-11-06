@@ -293,4 +293,15 @@ These are targets, measured from the first build and recorded in ARCHITECTURE §
   - M5 VITALS: a patient monitor's three traces, the heartbeat on the horizon, a pulse wave above (rise, fall, dicrotic notch after each beat) and breathing below (a slow wave on the flow clock, deeper when loud);
   - M6 RACE: the sweep's pace follows the bass (1 s a sweep when it drives, 2.6 s when quiet, eased) and the spikes grow with it.
 
+  The user: "I like M4 SCAN - let's get variations on that".
+- **2026-11-06: SCAN variations** (`mockups/code-rain-scan/`), published at https://claude.ai/artifact/Sp3a7NznV19y6TAtUTDhD2. All on C8 LAYERS with the monitor (a 2 s sweep writing the heartbeat, the resting beat, the glow); what changes is the beam and what it does to the code:
+  - S1 SCAN: the picked one; a soft beam on the point lights the code under it, flaring on spikes;
+  - S2 WAKE: the light lingers on the code behind the beam (fading over 0.7 s), and each spike leaves a brighter stripe;
+  - S3 REVEAL: the code rests dark (10%) until the beam finds it, then fades back over 0.6 s, like a radar; the warp is dimmed by half;
+  - S4 LINE: a crisp scan line top to bottom; code it crosses flashes white and changes glyphs (decoded);
+  - S5 BOUNCE: the beam sweeps across and back like a scanner, writing the heartbeat both ways, with no jump back to the start;
+  - S6 SWELL: the beam's width and brightness follow the bass, and each beat bursts it wider; slim in the breakdown.
+
+  First pass: WAKE and REVEAL lingered 0.9 s and 1.6 s against a 2 s sweep, so the whole view stayed lit and they looked alike. Lingering must stay well under the sweep.
+
   Waiting for the user's pick, then the WebGL build on SIGNAL.

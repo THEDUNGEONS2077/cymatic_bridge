@@ -251,4 +251,13 @@ These are targets, measured from the first build and recorded in ARCHITECTURE §
   - B STRATA: three depth layers;
   - C TUNNEL: streams rushing from a core, PLEXUS's flight as rain.
 
+  The user leaned to C: "Let's try 6 different mock ups for TUNNEL".
+- **2026-11-06: TUNNEL variations** (`mockups/code-rain-tunnel/`), published at https://claude.ai/artifact/RzD8ccGWzYTzoPhKfEUnV4:
+  - C1 RUSH: the first TUNNEL, streams scattered round the core (now fading as they pass, not vanishing);
+  - C2 SPECTRUM: spokes in spectrum order round a ring, bass at the bottom, treble at the top;
+  - C3 TUBE: a slowly bending tube whose walls are glyph columns, drops racing along them, beat rings running out of the core;
+  - C4 VORTEX: five spiral arms, the tunnel turning with the level, each beat a smooth push;
+  - C5 WARP: glyphs through the whole volume, streaking as the speed (level, beat surges) climbs;
+  - C6 ECHO: a ring of glyphs leaves the core every 80 ms, shaped and lit by the spectrum at that moment (SIGNAL's history ring).
+
   Waiting for the user's pick.

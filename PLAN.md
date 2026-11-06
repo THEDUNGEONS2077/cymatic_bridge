@@ -284,4 +284,13 @@ These are targets, measured from the first build and recorded in ARCHITECTURE §
 
   Test note: this machine was heavily loaded (load ~11 from another session's Java build), so headless frames ran at 2–5 fps and dropped beats; the frames were checked by stepping the page at a steady 60 fps instead.
 
-  Waiting for the user's pick (OUTWARD or MONITOR), then the WebGL build on SIGNAL.
+  The user: "I like monitor, give me more variations of it".
+- **2026-11-06: MONITOR variations** (`mockups/code-rain-monitor/`), published at https://claude.ai/artifact/7S7qVcNbyxPamm4kz5nzed. All on C8 LAYERS, all keeping the heartbeat (spike with the kick, taller for louder kicks, the resting beat) and the glow:
+  - M1 CLASSIC: the picked MONITOR (a 2 s left-to-right sweep, the trace fading, a gap ahead of the point);
+  - M2 LOCKED: a hospital monitor; two bars a sweep, locked to the beat, so eight heartbeats stand still and are redrawn in step; the trace held near full until wiped (the app would need a tempo estimate in SIGNAL);
+  - M3 CENTRE: two points sweep out from the centre to both edges, the trace mirrored;
+  - M4 SCAN: the point carries a soft vertical beam that lights the code it passes, flaring on spikes;
+  - M5 VITALS: a patient monitor's three traces, the heartbeat on the horizon, a pulse wave above (rise, fall, dicrotic notch after each beat) and breathing below (a slow wave on the flow clock, deeper when loud);
+  - M6 RACE: the sweep's pace follows the bass (1 s a sweep when it drives, 2.6 s when quiet, eased) and the spikes grow with it.
+
+  Waiting for the user's pick, then the WebGL build on SIGNAL.

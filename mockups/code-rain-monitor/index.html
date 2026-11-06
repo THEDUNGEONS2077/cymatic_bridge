@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CODE RAIN EQ · LAYERS · MONITOR VARIATIONS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  /*
+   * CODE RAIN EQ · C8 LAYERS · MONITOR variations, for cymatic_bridge (S5).
+   * The user picked MONITOR from the heartbeat horizon ("I like monitor, give
+   * me more variations of it"): six takes (CLASSIC, LOCKED, CENTRE, SCAN,
+   * VITALS, RACE), each on its own canvas, all driven by one synthetic 120 BPM
+   * track (the code-rain mock-ups' page, track, palettes and glyphs). One
+   * visual world (black, like the app), so no light theme. Layout: a header, a
+   * sticky control bar (sound, palette), then the six stacked, each a wide
+   * canvas with its notes beside it. Only the canvases on screen draw.
+   */
+  :root {
+    --bg: #000000;
+    --surface: #07050d;
+    --line: #261a3d;
+    --line-lit: #442059;
+    --text: #bb8ef0;
+    --text-dim: #a173e0;
+    --accent: #c25bff;
+    --bright: #ecd6ff;
+    --font: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', Consolas, monospace;
+    color-scheme: dark;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--font); font-size: 13px; line-height: 1.55; }
+  a { color: var(--accent); }
+  a:hover, a:focus-visible { color: var(--bright); }
+  header { padding: 28px 24px 12px; max-width: 1240px; margin: 0 auto; }
+  h1 { margin: 0 0 6px; font-size: 18px; letter-spacing: 0.12em; color: var(--accent); text-shadow: 0 0 6px color-mix(in srgb, var(--accent) 35%, transparent); text-wrap: balance; }
+  .lede { margin: 0; max-width: 74ch; color: var(--bright); }
+  .lede span { color: var(--text); }
+  .bar { position: sticky; top: 0; z-index: 5; background: color-mix(in srgb, var(--bg) 86%, transparent); border-bottom: 1px solid var(--line-lit); }
+  .bar-inner { max-width: 1240px; margin: 0 auto; padding: 10px 24px; display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+  .bar-label { color: var(--text-dim); letter-spacing: 0.08em; font-size: 11px; }
+  button { font: inherit; font-size: 11px; letter-spacing: 0.06em; height: 26px; padding: 0 10px; color: var(--text); background: var(--bg); border: 1px solid var(--line-lit); border-radius: 2px; cursor: pointer; }
+  button:hover, button:focus-visible { color: var(--bright); border-color: var(--accent); box-shadow: 0 0 6px color-mix(in srgb, var(--accent) 35%, transparent); }
+  button:focus-visible { outline: 1px solid var(--bright); outline-offset: 1px; }
+  button[aria-pressed="true"] { color: var(--bright); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--bg)); }
+  .swatches { display: flex; gap: 6px; flex-wrap: wrap; }
+  .swatch { display: inline-flex; align-items: center; gap: 6px; }
+  .chip { width: 22px; height: 8px; border-radius: 1px; }
+  .section { font-variant-numeric: tabular-nums; color: var(--text-dim); font-size: 11px; margin-left: auto; }
+  main { max-width: 1240px; margin: 0 auto; padding: 18px 24px 48px; display: grid; gap: 22px; }
+  .dir { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 18px; align-items: start; }
+  .stage { position: relative; border: 1px solid var(--line-lit); background: #000; aspect-ratio: 16 / 8; }
+  .stage canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  .tag { position: absolute; left: 10px; top: 8px; font-size: 11px; letter-spacing: 0.1em; color: var(--bright); text-shadow: 0 0 4px #000; }
+  .notes h2 { margin: 2px 0 6px; font-size: 14px; letter-spacing: 0.1em; color: var(--accent); }
+  .notes p { margin: 0 0 8px; color: var(--bright); }
+  .notes ul { margin: 0; padding-left: 16px; }
+  .notes li { margin-bottom: 4px; }
+  footer { max-width: 1240px; margin: 0 auto; padding: 0 24px 32px; color: var(--text-dim); font-size: 11px; }
+  @media (max-width: 860px) { .dir { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>CODE RAIN EQ · C8 LAYERS · MONITOR VARIATIONS</h1>
+  <p class="lede">You picked MONITOR. Six takes on it, all on C8 LAYERS. Each keeps <span>the heartbeat</span> (a spike with each kick, louder kicks taller, a resting heartbeat in quiet parts) and <span>the glow along the horizon</span> (following the music, brighter when loud). What changes is how the monitor sweeps and what its trace does. Pick one, or mix parts of them.</p>
+</header>
+
+<div class="bar">
+  <div class="bar-inner">
+    <button type="button" id="sound" aria-pressed="false">PLAY SOUND</button>
+    <span class="bar-label">PALETTE</span>
+    <div class="swatches" id="swatches" role="group" aria-label="Palette"></div>
+    <span class="section" id="section" aria-live="off">BAR 1 · FULL</span>
+  </div>
+</div>
+
+<main>
+  <section class="dir" aria-labelledby="m1-title">
+    <div class="stage"><canvas id="m1" aria-label="MONITOR variation CLASSIC, animated"></canvas><span class="tag">M1 · CLASSIC</span></div>
+    <div class="notes">
+      <h2 id="m1-title">M1 · CLASSIC</h2>
+      <p>The MONITOR you picked, for comparison.</p>
+      <ul>
+        <li>A point sweeps left to right every 2 seconds, writing the heartbeat.</li>
+        <li>The trace fades behind it; a short gap runs just ahead of the point.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="dir" aria-labelledby="m2-title">
+    <div class="stage"><canvas id="m2" aria-label="MONITOR variation LOCKED, animated"></canvas><span class="tag">M2 · LOCKED</span></div>
+    <div class="notes">
+      <h2 id="m2-title">M2 · LOCKED</h2>
+      <p>A hospital monitor: the trace stays bright until the point comes round again and wipes it.</p>
+      <ul>
+        <li>Each sweep lasts two bars, locked to the beat, so the heartbeats stand still in the same places and get redrawn in step.</li>
+        <li>Eight beats across: calmer and more regular.</li>
+        <li>In the app it needs the song's tempo (a small addition to SIGNAL); until it locks on, it sweeps at a set pace.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="dir" aria-labelledby="m3-title">
+    <div class="stage"><canvas id="m3" aria-label="MONITOR variation CENTRE, animated"></canvas><span class="tag">M3 · CENTRE</span></div>
+    <div class="notes">
+      <h2 id="m3-title">M3 · CENTRE</h2>
+      <p>Two points start at the centre, where the code streams out, and sweep out to both edges together.</p>
+      <ul>
+        <li>The heartbeat is written in mirror image on both sides.</li>
+        <li>The focus stays at the vanishing point; the trace holds still while the points move.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="dir" aria-labelledby="m4-title">
+    <div class="stage"><canvas id="m4" aria-label="MONITOR variation SCAN, animated"></canvas><span class="tag">M4 · SCAN</span></div>
+    <div class="notes">
+      <h2 id="m4-title">M4 · SCAN</h2>
+      <p>The point carries a soft beam of light up and down the view, and the code it passes lights up.</p>
+      <ul>
+        <li>On each beat the beam flares with the spike.</li>
+        <li>Ties the monitor to the code.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="dir" aria-labelledby="m5-title">
+    <div class="stage"><canvas id="m5" aria-label="MONITOR variation VITALS, animated"></canvas><span class="tag">M5 · VITALS</span></div>
+    <div class="notes">
+      <h2 id="m5-title">M5 · VITALS</h2>
+      <p>A patient monitor's three traces: the heartbeat on the horizon, a pulse wave above it, breathing below.</p>
+      <ul>
+        <li>The pulse wave swells after each beat; the breathing follows the music's flow, deeper when it's loud.</li>
+        <li>One sweep writes all three.</li>
+        <li>The most like a real monitor; also the busiest.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section class="dir" aria-labelledby="m6-title">
+    <div class="stage"><canvas id="m6" aria-label="MONITOR variation RACE, animated"></canvas><span class="tag">M6 · RACE</span></div>
+    <div class="notes">
+      <h2 id="m6-title">M6 · RACE</h2>
+      <p>The sweep runs with the music: faster when the bass and kick drive it (a racing heart), slower when they drop.</p>
+      <ul>
+        <li>Spikes grow taller with the bass.</li>
+        <li>In the breakdown it slows to a resting pace.</li>
+      </ul>
+    </div>
+  </section>
+</main>
+<footer>OUTWARD and the first MONITOR: <a href="https://claude.ai/artifact/6F79Lqbg44rLiXj1oSTMGh">HEARTBEAT</a>. Test track: 120 BPM, kick on every beat, snare on 2 and 4, off-beat hats, a bassline and a pad; bars 13–16 of every 16 drop the kick (a breakdown). Flashes are limited as the app limits them (at most 3 a second). Glyphs are mirrored katakana where the system has a Japanese font (MS Gothic on Windows), otherwise letters and digits. Mock-ups are drawn with Canvas 2D; the real scene will be WebGL on SIGNAL.</footer>
+
+<script>
+'use strict';
+const TAU = Math.PI * 2;
+// --- The palettes (cymatic_bridge 0.3.0's eight: accent = bass, cool = treble, bright = beat accents). ---
+const PALETTES = [
+  ['UV', '#c25bff', '#20e0c0', '#ecd6ff'], ['LASER', '#ff2e4d', '#5fe3ff', '#ffcbd2'], ['ACID', '#b8ff2e', '#8a5cff', '#edffcb'],
+  ['SOLAR', '#ff8a1f', '#3a6dff', '#ffe2c7'], ['AURORA', '#3dffb0', '#ff4fd8', '#ceffeb'], ['TOXIC', '#ffe32e', '#a04dff', '#fff8cb'],
+  ['FROST', '#9fd8ff', '#5b5bff', '#e7f5ff'], ['FLARE', '#ff4fb3', '#2ee6ff', '#ffd3ec'],
+];
+const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+const mixc = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
+let pal = { accent: hex(PALETTES[0][1]), cool: hex(PALETTES[0][2]), bright: hex(PALETTES[0][3]) };
+// Frequency → colour (the app's freqColor): accent at the bass, cool at the treble, lifted toward bright when loud.
+function freqColor(x, e) {
+  const c = mixc(pal.accent, pal.cool, x * x * (3 - 2 * x));
+  return mixc(c, pal.bright, 0.35 * e * e);
+}
+const rgba = (c, a) => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${Math.max(0, Math.min(1, a))})`;
+
+// Glow sprites along the ramp (16 steps), and the horizon's haze and glow, rebuilt when the palette changes: cheaper than a gradient per glow.
+const SPRITES = 16;
+let sprites = [], hazeSprite = null, blooms = [];
+function buildSprites() {
+  // The haze: a soft vertical falloff in the ramp's middle colour, stretched along the horizon (light in the air, not a lamp).
+  hazeSprite = document.createElement('canvas');
+  hazeSprite.width = 2; hazeSprite.height = 64;
+  const hg = hazeSprite.getContext('2d'), hc = freqColor(0.5, 0.2), haze = hg.createLinearGradient(0, 0, 0, 64);
+  haze.addColorStop(0, rgba(hc, 0)); haze.addColorStop(0.3, rgba(hc, 0.12)); haze.addColorStop(0.5, rgba(hc, 0.55));
+  haze.addColorStop(0.7, rgba(hc, 0.12)); haze.addColorStop(1, rgba(hc, 0));
+  hg.fillStyle = haze;
+  hg.fillRect(0, 0, 2, 64);
+  // The horizon's glow: soft lights along the ramp, with no white centre (the line itself is the bright part).
+  blooms = Array.from({ length: RAMP }, (_, k) => {
+    const c = freqColor(k / (RAMP - 1), 0.25), b = document.createElement('canvas');
+    b.width = b.height = 64;
+    const bg = b.getContext('2d'), grad = bg.createRadialGradient(32, 32, 0, 32, 32, 32);
+    grad.addColorStop(0, rgba(c, 0.85)); grad.addColorStop(0.25, rgba(c, 0.5)); grad.addColorStop(0.55, rgba(c, 0.15)); grad.addColorStop(1, rgba(c, 0));
+    bg.fillStyle = grad;
+    bg.fillRect(0, 0, 64, 64);
+    return b;
+  });
+  sprites = [];
+  for (let k = 0; k < SPRITES; k++) {
+    const c = freqColor(k / (SPRITES - 1), 0.2);
+    const s = document.createElement('canvas');
+    s.width = s.height = 64;
+    const g = s.getContext('2d');
+    const grad = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+    grad.addColorStop(0, rgba(mixc(c, [255, 255, 255], 0.5), 1));
+    grad.addColorStop(0.18, rgba(c, 0.9));
+    grad.addColorStop(0.45, rgba(c, 0.25));
+    grad.addColorStop(1, rgba(c, 0));
+    g.fillStyle = grad;
+    g.fillRect(0, 0, 64, 64);
+    sprites.push(s);
+  }
+}
+const spriteOf = (x) => sprites[Math.round(Math.max(0, Math.min(1, x)) * (SPRITES - 1))];
+
+// --- The test track, as a schedule: the signal below and the sound (PLAY SOUND) both follow it. ---
+const BPM = 120, BEAT = 60 / BPM, BAR = BEAT * 4, LOOP = BAR * 16;
+const BASS_NOTES = [41, 41, 44, 39, 41, 41, 46, 44]; // MIDI, one per 8th of a bar's first half, repeated
+const sectionOf = (t) => (Math.floor((t % LOOP) / BAR) >= 12 ? 'BREAKDOWN' : 'FULL');
+const hasKick = (t) => sectionOf(t) === 'FULL';
+
+// --- The synthetic SIGNAL: 64 bands (0..1) and the scalars the app's shaders get. ---
+const BANDS = 64;
+const target = new Float32Array(BANDS), bands = new Float32Array(BANDS);
+const sig = { level: 0, bass: 0, beat: 0, beatCount: 0, accent: 0, flow: 0 };
+let lastKick = -1, lastAccent = -10;
+const gauss = (x, m, s) => Math.exp(-0.5 * ((x - m) / s) ** 2);
+function stepSignal(t, dt) {
+  const beatT = t % BEAT, eighth = t % (BEAT / 2);
+  const kick = hasKick(t) ? Math.exp(-beatT / 0.12) : 0;
+  const beatIndex = Math.floor((t % BAR) / BEAT);
+  const snare = beatIndex % 2 === 1 ? Math.exp(-beatT / 0.18) : 0;
+  const hat = eighth > BEAT / 4 ? Math.exp(-(eighth - BEAT / 4) / 0.05) : 0;
+  const bassEnv = (hasKick(t) ? 0.55 : 0.2) * (0.6 + 0.4 * Math.exp(-eighth / 0.15));
+  const pad = (sectionOf(t) === 'BREAKDOWN' ? 0.45 : 0.22) * (0.7 + 0.3 * Math.sin(t * 0.7));
+  for (let b = 0; b < BANDS; b++) {
+    const x = b / (BANDS - 1);
+    target[b] = Math.min(1, 0.95 * kick * gauss(x, 0.06, 0.07) + bassEnv * gauss(x, 0.16, 0.06) + 0.7 * snare * (gauss(x, 0.45, 0.12) + 0.4 * gauss(x, 0.8, 0.15)) + 0.6 * hat * gauss(x, 0.88, 0.08) + pad * gauss(x, 0.35, 0.16) + 0.03);
+    // The app's balanced profile: quick up (15 ms), short fall (140 ms).
+    const tau = target[b] > bands[b] ? 0.015 : 0.14;
+    bands[b] += (target[b] - bands[b]) * (1 - Math.exp(-dt / tau));
+  }
+  let level = 0, bass = 0;
+  for (let b = 0; b < BANDS; b++) { level += bands[b]; if (b < 10) bass += bands[b]; }
+  sig.level = level / BANDS;
+  sig.bass = bass / 10;
+  // A beat on each kick; the accent at most 3 a second (the app's strobe limit), on strong ones.
+  const k = Math.floor(t / BEAT);
+  sig.beat *= Math.exp(-dt / 0.15);
+  if (hasKick(t) && k !== lastKick && beatT < 0.12) {
+    lastKick = k;
+    sig.beat = 1;
+    sig.beatCount++;
+    if (t - lastAccent >= 0.34) { sig.accent = 0.8; lastAccent = t; }
+    for (const d of directions) d.onBeat();
+  }
+  sig.accent *= Math.exp(-dt / 0.2);
+  sig.flow += dt * (0.25 + 1.75 * sig.level);
+}
+const bandAt = (x) => bands[Math.round(Math.max(0, Math.min(1, x)) * (BANDS - 1))];
+/** The spectrum at x (0..1), interpolated between bands, so a shape drawn from it is smooth, not stepped. */
+function bandSmooth(x) {
+  const p = Math.max(0, Math.min(1, x)) * (BANDS - 1), i = Math.floor(p), t = p - i;
+  return bands[i] * (1 - t) + bands[Math.min(BANDS - 1, i + 1)] * t;
+}
+
+function rng(seed) { return () => ((seed = (seed * 16807) % 2147483647) - 1) / 2147483646; }
+// --- A canvas that follows its box, at the screen's pixel ratio; it draws only while on screen. ---
+function setup(id) {
+  const canvas = document.getElementById(id);
+  const ctx = canvas.getContext('2d');
+  const view = { canvas, ctx, w: 0, h: 0, visible: true };
+  const fit = () => {
+    const r = canvas.getBoundingClientRect(), dpr = Math.min(2, window.devicePixelRatio || 1);
+    view.w = r.width; view.h = r.height;
+    canvas.width = Math.round(r.width * dpr); canvas.height = Math.round(r.height * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  };
+  new ResizeObserver(() => { fit(); view.onResize?.(); }).observe(canvas);
+  new IntersectionObserver(([e]) => (view.visible = e.isIntersecting)).observe(canvas);
+  fit();
+  return view;
+}
+/** Clears a view to black and switches to adding light (glows sum, as the app's additive passes do). */
+function clear(ctx, w, h) {
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1; ctx.fillStyle = '#000'; ctx.fillRect(0, 0, w, h);
+  ctx.globalCompositeOperation = 'lighter';
+}
+
+// --- Glyphs: cyberdeck's rain set (mirrored half-width katakana, digits, a few symbols), pre-drawn per colour. ---
+const GLYPHS = [...'ｦｱｳｴｵｶｷｹｺｻｼｽｾｿﾀﾂﾃﾅﾆﾇﾈﾊﾋﾎﾏﾐﾑﾒﾓﾔﾕﾗﾘﾜ0123456789Z:.=*+-<>|'];
+const RAMP = 12, CELL = 32;
+let atlases = [], headAtlas = null, rampCss = [], rampClear = [];
+/** One canvas of every glyph in colour `c` (CELL px squares, mirrored like cyberdeck's rain). */
+function atlasOf(c) {
+  const a = document.createElement('canvas');
+  a.width = GLYPHS.length * CELL; a.height = CELL;
+  const g = a.getContext('2d');
+  g.font = `${CELL - 6}px "MS Gothic", "Noto Sans Mono CJK JP", "JetBrains Mono", monospace`;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.fillStyle = rgba(c, 1);
+  GLYPHS.forEach((ch, i) => { g.save(); g.translate(i * CELL + CELL / 2, CELL / 2); g.scale(-1, 1); g.fillText(ch, 0, 1); g.restore(); });
+  return a;
+}
+/** The glyph atlases along the ramp, the near-white head atlas, and the ramp as CSS colours, solid and clear (the streaks' gradients run from one to the other). */
+function buildAtlases() {
+  atlases = Array.from({ length: RAMP }, (_, k) => atlasOf(freqColor(k / (RAMP - 1), 0.15)));
+  headAtlas = atlasOf(mixc(pal.bright, [255, 255, 255], 0.4));
+  const ramp = Array.from({ length: RAMP }, (_, k) => freqColor(k / (RAMP - 1), 0.15));
+  rampCss = ramp.map((c) => rgba(c, 1));
+  // The same colour at alpha 0 (not transparent black), so a fading streak never darkens on the way out.
+  rampClear = ramp.map((c) => rgba(c, 0));
+}
+const rampIndex = (band) => Math.round(Math.max(0, Math.min(1, band)) * (RAMP - 1));
+const atlasFor = (band) => atlases[rampIndex(band)];
+/** Draws glyph `g` from atlas `at`, centred at x, y, `size` px, at `alpha`. */
+function glyph(ctx, at, g, x, y, size, alpha) {
+  if (alpha < 0.02) return;
+  ctx.globalAlpha = Math.min(1, alpha);
+  ctx.drawImage(at, g * CELL, 0, CELL, CELL, x - size / 2, y - size / 2, size, size);
+}
+/** A glow sprite in `band`'s colour round x, y (flaring heads, the heartbeat's sparks), skipped when faint. */
+function flareAt(ctx, band, x, y, s, alpha) {
+  if (alpha < 0.03) return;
+  ctx.globalAlpha = Math.min(1, alpha);
+  ctx.drawImage(spriteOf(band), x - s * 1.4, y - s * 1.4, s * 2.8, s * 2.8);
+}
+
+// --- Shared tunnel geometry: a camera on the axis looking down +z; a point (x, y) at depth z lands at centre + (x, y)·f/z. ---
+/** Nearest depth drawn: closer than this a glyph has passed you. */
+const NEAR = 0.3;
+/** How visible a point at depth z is: it fades in over the far third of the tunnel and out just before the camera (PLEXUS's near fade). */
+function fogOf(z, deep) {
+  return Math.max(0, Math.min(1, (deep - z) / (deep * 0.35))) * Math.max(0, Math.min(1, (z - NEAR) / 0.6));
+}
+/** The stage's focal length in px: a point 1 unit off the axis at depth 1 lands this far from the centre. */
+const focal = (v) => 0.42 * Math.min(v.w, v.h * 1.6);
+/** A glyph's size in px at depth z (a glyph is 0.1 units across), capped so passing ones don't fill the screen. */
+const sizeAt = (f, z) => Math.min(72, (0.1 * f) / z);
+/** Is a point (with half-size m) on the stage at all? Off-stage glyphs are skipped. */
+const onStage = (v, x, y, m) => x > -m && x < v.w + m && y > -m && y < v.h + m;
+/** Hermite smoothstep: 0 below a, 1 above b (or the reverse when a > b), eased between. */
+function smooth(a, b, x) {
+  const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
+}
+
+// --- The horizon: a straight line of light through the vanishing point. Its glow follows the music; the heartbeat runs along it. ---
+/** The band shown `a` half-widths from the horizon's centre: bass in the middle, treble at the edges. The power gives the bass and mids more room and joins the two mirrored halves smoothly at the centre. */
+const bandAlong = (a) => Math.pow(Math.min(1, a), 1.4);
+/** How strongly the horizon glows `a` half-widths from the centre: its band's loudness (squared, so quiet stays calm and loud blooms), lifted by the level `lvl`, plus `extra` (the heartbeat's glow there). */
+function glowAlong(a, lvl, extra) {
+  const e = bandSmooth(bandAlong(a));
+  return Math.min(1.4, 1.6 * e * e * (0.7 + 0.9 * lvl) + extra);
+}
+/** The horizon's glow for one view: a faint haze, then soft lights along the line that overlap into one halo, taller and brighter where it's loud. extraAt(x) adds the heartbeat's glow at x (signed, in half-widths from the centre). */
+function drawGlow(ctx, v, cam, lvl, extraAt) {
+  const { w, h } = v, hw = w / 2;
+  const hh = h * (0.06 + 0.06 * lvl);
+  ctx.globalAlpha = Math.min(1, 0.22 + 0.5 * lvl);
+  ctx.drawImage(hazeSprite, 0, cam.cy - hh, w, hh * 2);
+  // A soft light every `step` px, each nearly twice as wide as the step, so they blend into one smooth halo.
+  const K = 40, step = hw / K, gw = step * 1.8;
+  for (let i = -K - 2; i <= K + 2; i++) {
+    const x = i / K, a = Math.abs(x), fade = smooth(1.12, 0.9, a);
+    if (fade < 0.01) continue;
+    const glow = glowAlong(a, lvl, extraAt(x)), gh = h * (0.008 + 0.055 * glow);
+    ctx.globalAlpha = Math.min(1, (0.16 + 0.7 * glow) * fade);
+    ctx.drawImage(blooms[rampIndex(bandAlong(a))], cam.cx + i * step - gw, cam.cy - gh, gw * 2, gh * 2);
+  }
+}
+/** The colour of the horizon's line across the view: frequency → colour mirrored from the centre, brighter (and whiter) where it glows, fading out past the edges. */
+function lineGradient(ctx, v, cam, lvl, extraAt) {
+  const hw = v.w / 2, lit = ctx.createLinearGradient(cam.cx - 1.12 * hw, 0, cam.cx + 1.12 * hw, 0);
+  for (let i = 0; i <= 64; i++) {
+    const x = ((i / 64) * 2 - 1) * 1.12, a = Math.abs(x), glow = glowAlong(a, lvl, extraAt(x));
+    lit.addColorStop(i / 64, rgba(freqColor(bandAlong(a), Math.min(1, glow)), smooth(1.12, 0.9, a) * Math.min(1, 0.45 + 0.6 * glow)));
+  }
+  return lit;
+}
+/** Strokes a path as a glowing line in the current strokeStyle: wide faint strokes under a fine bright one, all × k. */
+function strokeGlowing(ctx, path, k = 1) {
+  for (const [width, alpha] of [[9, 0.07], [3.5, 0.3], [1.4, 1]]) {
+    ctx.lineWidth = width;
+    ctx.globalAlpha = Math.min(1, alpha * k);
+    ctx.stroke(path);
+  }
+}
+
+// --- The heartbeat: one beat's shape (an ECG's Q, R, S and T; a pulse wave for VITALS), and the slow resting beat when the music has none. ---
+/** The sharp middle of a heartbeat, as corners in time (seconds after the beat → height, in spike heights): Q dips, R spikes, S dips, back to flat. Straight lines join them; the spike peaks 28 ms after the beat, with the kick. */
+const QRS = [[0, 0], [0.012, -0.1], [0.028, 1], [0.046, -0.3], [0.066, 0]];
+/** A heartbeat's height t seconds after its beat: the QRS corners, then a wider rounded T. (No P bump: it would come before the beat, which a monitor can't know yet.) */
+function ecgAt(t) {
+  if (t < 0 || t > 0.3) return 0;
+  if (t >= 0.12) return 0.26 * Math.sin(((t - 0.12) / 0.18) * Math.PI);
+  for (let k = 0; k < QRS.length - 1; k++) {
+    const [t0, y0] = QRS[k], [t1, y1] = QRS[k + 1];
+    if (t >= t0 && t < t1) return y0 + ((y1 - y0) * (t - t0)) / (t1 - t0);
+  }
+  return 0;
+}
+/** VITALS' pulse wave after a beat (a pulse oximeter's), s seconds in: a quick smooth rise, a slower fall, and a small second bump (the dicrotic notch). */
+function pulseAt(s) {
+  if (s < 0 || s > 1.1) return 0;
+  if (s < 0.12) return smooth(0, 0.12, s);
+  return Math.exp(-(s - 0.12) / 0.25) + 0.16 * Math.exp(-(((s - 0.36) / 0.05) ** 2));
+}
+/** The resting heartbeat: after 1.6 s without a beat, a small, slow beat every 1.1 s, so the line never flatlines (the app's idle breath, as a pulse). heard() resets it on a real beat; tick(dt) is true when a resting beat is due. */
+function makeResting() {
+  let quiet = 0, wait = 0;
+  return {
+    heard() { quiet = 0; },
+    tick(dt) {
+      quiet += dt;
+      if (quiet < 1.6) { wait = 0; return false; }
+      wait -= dt;
+      if (wait > 0) return false;
+      wait = 1.1;
+      return true;
+    },
+  };
+}
+/** The resting beat's strength (a real beat's is 0.65–1, by the kick). */
+const REST = 0.32;
+
+// --- The monitor: a heart monitor on the horizon, six ways. ---
+/**
+ * One heart monitor. A point (two, for CENTRE) sweeps along the horizon writing the heartbeat; `style` sets how it
+ * sweeps and what the trace does:
+ *  - classic: left to right every 2 s, the trace fading behind the point;
+ *  - locked: two bars a sweep, locked to the beat, the trace held near full brightness until the point wipes it;
+ *  - centre: two points out from the centre to the edges, the trace mirrored;
+ *  - scan: classic, and the point carries a beam that lights the code it passes (lightAt);
+ *  - vitals: classic, plus a pulse wave above the horizon and breathing below it;
+ *  - race: classic, with the sweep's pace (and the spikes' height) following the bass.
+ */
+function makeMonitor(style) {
+  const COLS = 1024, GAP = 0.05;
+  const centre = style === 'centre', locked = style === 'locked', vitals = style === 'vitals', race = style === 'race', scan = style === 'scan';
+  const rest = makeResting();
+  // Per column: the heartbeat's height and when it was written; VITALS also keeps the pulse wave and the breathing.
+  const trace = new Float32Array(COLS), wrote = new Float32Array(COLS).fill(-99);
+  const pleth = new Float32Array(COLS), breath = new Float32Array(COLS);
+  let head = locked ? -1 : 0, now = 0, beats = [], lvl = 0.3, bassLvl = 0.3, live = 0;
+  // Seconds a sweep takes (CENTRE: centre to edge; LOCKED: two bars; RACE eases it).
+  let sweep = centre ? 1.2 : locked ? 2 * BAR : 2;
+  // SCAN's beam where the code reads it: its x and half-width in px (set as it's drawn, before the code is).
+  let beamX = -1e9, beamW = 1;
+  const valueAt = (t) => { let y = 0; for (const b of beats) y += b.a * ecgAt(t - b.t); return y; };
+  const plethAt = (t) => { let y = 0; for (const b of beats) y += b.a * pulseAt(t - b.t); return y; };
+  return {
+    beat(strength) { beats.push({ t: now, a: strength }); rest.heard(); },
+    /** SCAN: how much the beam lights code at screen x (×, added to 1); null for the other styles. */
+    lightAt: scan ? (x) => (0.6 + 0.9 * Math.abs(live)) * Math.exp(-(((x - beamX) / beamW) ** 2)) : null,
+    step(t, dt) {
+      lvl += (sig.level - lvl) * (1 - Math.exp(-dt / 0.25));
+      bassLvl += (sig.bass - bassLvl) * (1 - Math.exp(-dt / 0.6));
+      if (rest.tick(dt)) beats.push({ t: now, a: REST });
+      // How far the point moves this frame, as a share of its sweep.
+      let delta;
+      if (locked) {
+        // Locked to the track's clock; the beats land 1/16, 3/16, … of the way across, never at an edge.
+        const goal = (t / sweep + 1 / 16) % 1;
+        if (head < 0) head = goal;
+        delta = (goal - head + 1) % 1;
+        // A big jump (the page was away): carry on from the new place without writing across.
+        if (delta > 0.25) { head = goal; delta = 0; }
+      } else {
+        // RACE: 2.6 s a sweep when the bass is quiet, 1 s when it drives; eased, so the pace never jumps.
+        if (race) sweep += (2.6 - 1.6 * smooth(0.15, 0.5, bassLvl) - sweep) * (1 - Math.exp(-dt / 0.8));
+        delta = dt / sweep;
+      }
+      // VITALS' breathing: a slow wave on the flow clock (quicker when loud), deeper when loud.
+      const breathing = vitals ? Math.sin(sig.flow * 1.6) * (0.35 + 0.65 * lvl) : 0;
+      // Write the columns the point passes, each at the moment the point crossed it (so the shapes don't depend on the frame rate).
+      const from = head * COLS, to = (head + delta) * COLS;
+      for (let c = Math.floor(from) + 1; c <= Math.floor(to); c++) {
+        const tc = now + ((c - from) / (to - from)) * dt, k = c % COLS;
+        trace[k] = valueAt(tc);
+        wrote[k] = tc;
+        if (vitals) { pleth[k] = plethAt(tc); breath[k] = breathing; }
+      }
+      head = (head + delta) % 1;
+      now += dt;
+      live = valueAt(now);
+      beats = beats.filter((b) => now - b.t < (vitals ? 1.2 : 0.35));
+    },
+    draw(ctx, v, cam) {
+      const { w, h } = v, hw = w / 2;
+      // RACE's spikes grow with the bass.
+      const A = h * 0.12 * (race ? 0.8 + 0.6 * bassLvl : 1);
+      const hc = Math.floor(head * COLS) % COLS;
+      // Where column c sits: across the whole view, or (CENTRE) out from the centre on `side` (−1 left, +1 right).
+      const xOf = (c, side = 1) => (centre ? cam.cx + side * (c / (COLS - 1)) * hw : (c / (COLS - 1)) * w);
+      // The point, in half-widths from the centre (CENTRE: its distance out, on both sides).
+      const at = centre ? head : head * 2 - 1;
+      const extraAt = (x) => { const q = ((centre ? Math.abs(x) : x) - at) / 0.05; return (0.25 + 0.8 * Math.abs(live)) * Math.exp(-q * q); };
+      drawGlow(ctx, v, cam, lvl, extraAt);
+      ctx.lineJoin = 'round';
+      ctx.lineCap = 'butt';
+      const lit = lineGradient(ctx, v, cam, lvl, extraAt);
+      // SCAN: a soft beam of light up and down the view at the point, flaring on a spike.
+      if (scan) {
+        beamX = xOf(hc);
+        beamW = w * 0.03;
+        ctx.globalAlpha = Math.min(1, 0.25 + 0.6 * Math.abs(live));
+        ctx.drawImage(blooms[rampIndex(bandAlong(Math.abs(at)))], beamX - beamW, cam.cy - h * 0.62, beamW * 2, h * 1.24);
+      }
+      // The flat horizon, faint, across the whole view, so the horizon stays where the trace has faded.
+      ctx.strokeStyle = lit;
+      const base = new Path2D();
+      base.moveTo(cam.cx - 1.12 * hw, cam.cy); base.lineTo(cam.cx + 1.12 * hw, cam.cy);
+      strokeGlowing(ctx, base, 0.3);
+      // How bright a stretch of trace is by its age: fading (LOCKED: held near full until wiped); the oldest stretch, just ahead of the point, is the gap.
+      const alphaOf = (age) => (age > sweep * (1 - GAP) ? 0 : locked ? 0.85 + 0.15 * Math.exp(-age / 0.4) : Math.exp(-age / (centre ? 0.6 : 1.0)));
+      const sides = centre ? [-1, 1] : [1];
+      // One stretch of a trace (columns c0..c1), its baseline yOff px from the horizon, amp px a unit, × k.
+      const piece = (arr, c0, c1, yOff, amp, k) => {
+        if (c1 <= c0) return;
+        const a = alphaOf(now - wrote[(c0 + c1) >> 1]) * k;
+        if (a < 0.02) return;
+        for (const side of sides) {
+          const path = new Path2D();
+          for (let c = c0; c <= c1; c++) { const x = xOf(c, side), y = cam.cy + yOff - amp * arr[c]; if (c === c0) path.moveTo(x, y); else path.lineTo(x, y); }
+          strokeGlowing(ctx, path, a);
+        }
+      };
+      // A whole trace in short pieces, each as bright as it is fresh; a piece never spans the point (either side of it is a sweep apart).
+      const traceAll = (arr, yOff, amp, k) => {
+        for (let c0 = 0; c0 < COLS - 1; c0 += 16) {
+          const c1 = Math.min(COLS - 1, c0 + 16);
+          if (hc >= c0 && hc < c1) { piece(arr, c0, hc, yOff, amp, k); piece(arr, hc + 1, c1, yOff, amp, k); } else piece(arr, c0, c1, yOff, amp, k);
+        }
+      };
+      traceAll(trace, 0, A, 1);
+      if (vitals) {
+        // The pulse wave above the horizon (the palette's second colour) and the breathing below it (its first), thinner and dimmer.
+        ctx.strokeStyle = rgba(freqColor(0.85, 0.2), 1);
+        traceAll(pleth, -h * 0.17, h * 0.06, 0.55);
+        ctx.strokeStyle = rgba(freqColor(0.15, 0.2), 1);
+        traceAll(breath, h * 0.17, h * 0.035, 0.5);
+      }
+      // The point(s): a bright spark where the trace is being written (VITALS: one on each trace).
+      for (const side of sides) {
+        const x = xOf(hc, side);
+        flareAt(ctx, bandAlong(Math.abs(at)), x, cam.cy - A * trace[hc], h * 0.022, 0.9);
+        if (vitals) {
+          flareAt(ctx, 0.85, x, cam.cy - h * 0.17 - h * 0.06 * pleth[hc], h * 0.016, 0.6);
+          flareAt(ctx, 0.15, x, cam.cy + h * 0.17 - h * 0.035 * breath[hc], h * 0.016, 0.6);
+        }
+      }
+    },
+  };
+}
+
+// --- Streams: a head rushing toward the camera with a trail of glyphs behind it (farther away). ---
+/** The point a place() function last wrote (shared, so placing allocates nothing). */
+const P = { x: 0, y: 0 };
+/** A place() for streams at (angle, r) round the axis, seen by `cam` (its vanishing point cx, cy and focal length f, set each frame): writes where the stream is on screen at depth z into P. */
+function radialPlace(cam) {
+  return (s, z) => { P.x = cam.cx + (Math.cos(s.angle) * s.r * cam.f) / z; P.y = cam.cy + (Math.sin(s.angle) * s.r * cam.f) / z; };
+}
+/** Points a blend's camera for this frame: its focal length, and its vanishing point at the stage's centre, on the horizon. */
+function aim(cam, v) {
+  cam.f = focal(v);
+  cam.cx = v.w / 2;
+  cam.cy = v.h / 2;
+}
+/** A stream somewhere in the first `deep` units, on a random band; the blend sets where it sits (angle, r). */
+function makeStream(rand, deep) {
+  return { z: rand() * deep, band: rand(), e: 0, len: 6, flare: 0, angle: 0, r: 1, glyphs: Array.from({ length: 24 }, () => Math.floor(rand() * GLYPHS.length)) };
+}
+/** Moves a stream toward the camera by dt: its band's loudness sets its speed (units/s, × k, the flight's share) and its trail (lenBase + lenRange × loudness glyphs, eased); the treble flickers its glyphs. True once its whole trail has passed the camera: the caller places it again, far off. */
+function stepStream(s, dt, rand, k, gap, lenBase = 5, lenRange = 18) {
+  const e = (s.e = bandAt(s.band));
+  s.len += (lenBase + lenRange * e - s.len) * (1 - Math.exp(-dt / 0.3));
+  s.z -= (0.5 + 3.5 * e) * k * dt;
+  s.flare *= Math.exp(-dt / 0.2);
+  if (rand() < (0.5 + 5 * bandAt(0.9)) * dt) s.glyphs[Math.floor(rand() * s.glyphs.length)] = Math.floor(rand() * GLYPHS.length);
+  return s.z + s.len * gap < NEAR;
+}
+/** Draws a stream: the head near-white (flaring on the beat), the trail fading in its band's colour. place(s, z) writes the stream's screen point at depth z into P. lightAt(x), if given (SCAN), brightens glyphs by screen x. */
+function drawStream(ctx, v, s, f, deep, gap, place, lightAt = null) {
+  const at = atlasFor(s.band);
+  for (let i = 0; i <= s.len; i++) {
+    const z = s.z + i * gap;
+    if (z > deep) break;
+    const fog = fogOf(z, deep);
+    if (fog < 0.02) continue;
+    place(s, z);
+    const size = sizeAt(f, z);
+    if (!onStage(v, P.x, P.y, size * 1.5)) continue;
+    const lit = lightAt ? 1 + lightAt(P.x) : 1;
+    if (i === 0) {
+      const fs = size * (1 + 0.6 * s.flare);
+      flareAt(ctx, s.band, P.x, P.y, fs, s.flare * 0.7 * fog);
+      glyph(ctx, headAtlas, s.glyphs[0], P.x, P.y, fs, fog * lit);
+    } else {
+      glyph(ctx, at, s.glyphs[i % s.glyphs.length], P.x, P.y, size, Math.pow(1 - i / (s.len + 1), 1.5) * (0.3 + 0.7 * s.e) * fog * lit);
+    }
+  }
+}
+/** Draws a streak of light along speck s, from depth za (its bright end, nearest you) to zb (where it has faded out), in its band's colour: one gradient line, `width` px, at `alpha`. Skipped when faint, or when its far end is off the stage (a streak runs straight out from the centre, so then all of it is). */
+function drawStreak(ctx, v, s, za, zb, place, alpha, width) {
+  if (alpha < 0.02 || zb <= za) return;
+  place(s, zb);
+  const tx = P.x, ty = P.y;
+  if (!onStage(v, tx, ty, 0)) return;
+  place(s, za);
+  const k = rampIndex(s.band), g = ctx.createLinearGradient(P.x, P.y, tx, ty);
+  g.addColorStop(0, rampCss[k]);
+  g.addColorStop(1, rampClear[k]);
+  ctx.strokeStyle = g;
+  ctx.globalAlpha = Math.min(1, alpha);
+  ctx.lineWidth = width;
+  ctx.beginPath(); ctx.moveTo(P.x, P.y); ctx.lineTo(tx, ty); ctx.stroke();
+}
+/** The flight's speed, C5's engine: it eases toward cruise + level × levelK + the beat's surge × surgeK, quickly up (a lunge, 100 ms) and slowly down (a glide, 350 ms), so it never jumps. beat() starts a surge, which fades over about a third of a second. */
+function makeFlight(cruise, levelK, surgeK) {
+  const flight = {
+    speed: cruise + levelK * 0.3,
+    surge: 0,
+    beat() { flight.surge = 1; },
+    step(dt) {
+      flight.surge *= Math.exp(-dt / 0.35);
+      const goal = cruise + levelK * sig.level + surgeK * flight.surge;
+      flight.speed += (goal - flight.speed) * (1 - Math.exp(-dt / (goal > flight.speed ? 0.1 : 0.35)));
+    },
+  };
+  return flight;
+}
+
+// --- C8 · LAYERS: C1's streams in front, as calm as C1; C5's warp behind them as thin lines of light over the whole view; the horizon a heart monitor (`heart`). ---
+function blendLayers(id, heart) {
+  const v = setup(id);
+  const DEEP = 8, GAP = 0.32, DEEP_BACK = 12, SPECKS = 220;
+  const cam = { cx: 0, cy: 0, f: 1 }, place = radialPlace(cam), flight = makeFlight(0.6, 1.3, 2.0);
+  let streams = [], specks = [], rand;
+  const reset = (s) => { s.angle = rand() * TAU; s.r = 0.55 + rand() * 0.9; };
+  // The warp's specks go anywhere across the view (r spread evenly over the disc), each on its own band.
+  const resetSpeck = (d) => { d.angle = rand() * TAU; d.r = 0.3 + Math.sqrt(rand()) * 2.4; d.band = rand(); };
+  v.onResize = () => {
+    rand = rng(19);
+    streams = Array.from({ length: 120 }, () => { const s = makeStream(rand, DEEP); reset(s); return s; });
+    specks = Array.from({ length: SPECKS }, () => { const d = { z: rand() * DEEP_BACK, angle: 0, r: 1, band: 0 }; resetSpeck(d); return d; });
+  };
+  v.onResize();
+  return {
+    onBeat() {
+      // Off screen nothing steps, so beats would pile up: only a view on screen hears them.
+      if (!v.visible) return;
+      flight.beat();
+      // A louder kick draws a taller spike.
+      heart.beat(0.65 + 0.35 * Math.min(1, sig.bass * 1.4));
+      for (const s of streams) if (s.band < 0.3) s.flare = 1;
+    },
+    draw(t, dt) {
+      if (!v.visible) return;
+      const { ctx, w, h } = v;
+      clear(ctx, w, h);
+      aim(cam, v);
+      flight.step(dt);
+      heart.step(t, dt);
+      const sp = flight.speed;
+      heart.draw(ctx, v, cam);
+      ctx.lineCap = 'round';
+      // The warp behind: each speck's length (in depth) grows with the speed, from a dot at cruise to a long line in a surge.
+      const stretch = 0.05 + 0.45 * Math.max(0, sp - 0.9);
+      for (const d of specks) {
+        const e = bandAt(d.band);
+        d.z -= (1 + 1.5 * e) * sp * dt;
+        if (d.z + stretch < NEAR) { d.z = DEEP_BACK + rand(); resetSpeck(d); continue; }
+        const za = Math.max(d.z, 0.45), zb = Math.min(DEEP_BACK, d.z + stretch);
+        drawStreak(ctx, v, d, za, zb, place, 0.42 * fogOf((za + zb) / 2, DEEP_BACK) * (0.4 + 0.6 * e), Math.max(0.7, Math.min(2.5, sizeAt(cam.f, za) * 0.06)));
+      }
+      // The code in front keeps C1's pace, nudged a little by the flight so the two layers feel joined.
+      for (const s of streams) {
+        if (stepStream(s, dt, rand, 0.85 + 0.15 * sp, GAP)) { s.z = DEEP + rand(); reset(s); }
+        drawStream(ctx, v, s, cam.f, DEEP, GAP, place, heart.lightAt);
+      }
+      ctx.globalAlpha = 1;
+    },
+  };
+}
+
+// --- Sound (PLAY SOUND): the same track, scheduled on the audio clock, which then drives the visuals too. ---
+let audio = null, audioStart = 0, nextStep = 0;
+function playStep(ctx, at, step) {
+  const t = step * (BEAT / 4);
+  const out = ctx.destination;
+  const env = (node, peak, decay) => { const g = ctx.createGain(); g.gain.setValueAtTime(peak, at); g.gain.exponentialRampToValueAtTime(0.0008, at + decay); node.connect(g).connect(out); return g; };
+  const noise = () => { const b = ctx.createBuffer(1, ctx.sampleRate * 0.3, ctx.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; const s = ctx.createBufferSource(); s.buffer = b; return s; };
+  if (step % 4 === 0 && hasKick(t)) { const o = ctx.createOscillator(); o.frequency.setValueAtTime(130, at); o.frequency.exponentialRampToValueAtTime(45, at + 0.18); env(o, 0.9, 0.3); o.start(at); o.stop(at + 0.32); }
+  if (step % 8 === 4) { const n = noise(), f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.frequency.value = 1800; n.connect(f); env(f, 0.35, 0.2); n.start(at); n.stop(at + 0.25); }
+  if (step % 4 === 2) { const n = noise(), f = ctx.createBiquadFilter(); f.type = 'highpass'; f.frequency.value = 8000; n.connect(f); env(f, 0.12, 0.05); n.start(at); n.stop(at + 0.08); }
+  if (step % 2 === 0) {
+    const note = BASS_NOTES[(step / 2) % BASS_NOTES.length], o = ctx.createOscillator(), f = ctx.createBiquadFilter();
+    o.type = 'sawtooth'; o.frequency.value = 440 * 2 ** ((note - 69) / 12); f.type = 'lowpass'; f.frequency.value = 420; o.connect(f);
+    env(f, hasKick(t) ? 0.22 : 0.08, 0.22); o.start(at); o.stop(at + 0.25);
+  }
+}
+function schedule() {
+  if (!audio) return;
+  while (audioStart + nextStep * (BEAT / 4) < audio.currentTime + 0.3) { playStep(audio, audioStart + nextStep * (BEAT / 4), nextStep); nextStep++; }
+}
+document.getElementById('sound').addEventListener('click', async (e) => {
+  const btn = e.currentTarget;
+  try {
+    // One timeline: the track's time carries on unbroken when the audio clock takes over (and when it hands back).
+    const now = clock();
+    if (!audio) {
+      audio = new AudioContext();
+      audioStart = audio.currentTime - now;
+      nextStep = Math.ceil((now + 0.1) / (BEAT / 4));
+      btn.setAttribute('aria-pressed', 'true'); btn.textContent = 'STOP SOUND';
+    } else {
+      await audio.close(); audio = null;
+      base = now - performance.now() / 1000;
+      btn.setAttribute('aria-pressed', 'false'); btn.textContent = 'PLAY SOUND';
+    }
+  } catch { btn.textContent = 'SOUND BLOCKED'; }
+});
+
+// --- The palette picker. ---
+const sw = document.getElementById('swatches');
+PALETTES.forEach(([name, a, c, b], i) => {
+  const btn = document.createElement('button');
+  btn.type = 'button'; btn.className = 'swatch'; btn.setAttribute('aria-pressed', String(i === 0));
+  btn.innerHTML = `<span class="chip" style="background:linear-gradient(90deg, ${a} 0 50%, ${c} 50%)"></span>${name}`;
+  btn.addEventListener('click', () => {
+    pal = { accent: hex(a), cool: hex(c), bright: hex(b) };
+    buildSprites();
+    buildAtlases();
+    sw.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', String(x === btn)));
+  });
+  sw.appendChild(btn);
+});
+
+// --- The clock and the frame loop: one track time for all six (the audio clock while sound plays, heard time: less the output latency). ---
+let base = 0;
+const clock = () => (audio ? audio.currentTime - audioStart - (audio.outputLatency || 0) : performance.now() / 1000 + base);
+buildSprites();
+buildAtlases();
+const directions = ['classic', 'locked', 'centre', 'scan', 'vitals', 'race'].map((style, i) => blendLayers(`m${i + 1}`, makeMonitor(style)));
+let last = clock();
+const sectionEl = document.getElementById('section');
+let shownBar = -1;
+function frame() {
+  schedule();
+  const t = Math.max(0, clock()), dt = Math.min(0.1, Math.max(0, t - last));
+  last = t;
+  stepSignal(t, dt);
+  for (const d of directions) d.draw(t, dt);
+  const bar = Math.floor((t % LOOP) / BAR);
+  if (bar !== shownBar) { shownBar = bar; sectionEl.textContent = `BAR ${bar + 1} OF 16 · ${sectionOf(t)}`; }
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
